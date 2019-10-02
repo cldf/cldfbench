@@ -1,6 +1,11 @@
 # cldfbench
 Tooling to create CLDF datasets from existing data
 
+[![Build Status](https://travis-ci.org/cldf/cldfbench.svg?branch=master)](https://travis-ci.org/cldf/cldfbench)
+[![codecov](https://codecov.io/gh/cldf/cldfbench/branch/master/graph/badge.svg)](https://codecov.io/gh/cldf/cldfbench)
+[![Requirements Status](https://requires.io/github/cldf/cldfbench/requirements.svg?branch=master)](https://requires.io/github/cldf/cldfbench/requirements/?branch=master)
+[![PyPI](https://img.shields.io/pypi/v/cldfbench.svg)](https://pypi.org/project/cldfbench)
+
 
 ## Overview
 
