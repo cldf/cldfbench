@@ -27,6 +27,10 @@ setup(
         'csvw>=1.5.6',
         'clldutils>=3.0',
         'pycldf>=1.7.0',
+        'xlrd',
+        'openpyxl',
+        'termcolor',
+        'requests',
     ],
     extras_require={
         'dev': ['flake8', 'wheel', 'twine'],

@@ -1,12 +1,21 @@
 import inspect
 import pathlib
+import contextlib
+import zipfile
+import shutil
 import pkg_resources
 from xml.etree import ElementTree as et
 
-from clldutils.path import import_module
-from clldutils.misc import xmlchars, lazyproperty
+from clldutils.path import import_module, TemporaryDirectory
+from clldutils.misc import xmlchars, lazyproperty, slug
 from clldutils import jsonlib
 from csvw import dsv
+from pycldf.sources import Source
+import termcolor
+import xlrd
+import openpyxl
+import requests
+import pybtex
 
 
 def iter_datasets(ep='cldfbench.dataset'):
@@ -50,9 +59,6 @@ class Dataset(object):
     cldfbench supports the following workflow:
     - a `download` command populates a `Dataset`'s `raw` directory.
     - a `makecldf` command (re)creates the CLDF dataset in `cldf`.
-
-    Dataset discovery via entry_point:
-    TODO
     """
     dir = None
     id = None
@@ -72,6 +78,15 @@ class Dataset(object):
     @lazyproperty
     def etc_dir(self):
         return DataDir(self.dir / 'etc')
+
+
+def get_url(url, log=None, **kw):
+    res = requests.get(url, **kw)
+    if log:
+        level = log.info if res.status_code == 200 else log.warn
+        level('HTTP {0} for {1}'.format(
+            termcolor.colored(res.status_code, 'blue'), termcolor.colored(url, 'blue')))
+    return res
 
 
 class DataDir(type(pathlib.Path())):
@@ -94,6 +109,82 @@ class DataDir(type(pathlib.Path())):
     def read_json(self, fname, **kw):
         return jsonlib.load(fname)
 
-    #def read_bib(self, fname='sources.bib'):
-    #    bib = database.parse_string(self.read(fname), bib_format='bibtex')
-    #    return [Source.from_entry(k, e) for k, e in bib.entries.items()]
+    def read_bib(self, fname='sources.bib'):
+        bib = pybtex.database.parse_string(self.read(fname), bib_format='bibtex')
+        return [Source.from_entry(k, e) for k, e in bib.entries.items()]
+
+    def xls2csv(self, fname, outdir=None):
+        if isinstance(fname, str):
+            fname = self.joinpath(fname)
+        res = {}
+        outdir = outdir or self
+        wb = xlrd.open_workbook(str(fname))
+        for sname in wb.sheet_names():
+            sheet = wb.sheet_by_name(sname)
+            if sheet.nrows:
+                path = outdir.joinpath(fname.stem + '.' + slug(sname, lowercase=False) + '.csv')
+                with dsv.UnicodeWriter(path) as writer:
+                    for i in range(sheet.nrows):
+                        writer.writerow([col.value for col in sheet.row(i)])
+                res[sname] = path
+        return res
+
+    def xlsx2csv(self, fname, outdir=None):
+        def _excel_value(x):
+            if x is None:
+                return ""
+            if isinstance(x, float):
+                return '{0}'.format(int(x))
+            return '{0}'.format(x).strip()
+
+        if isinstance(fname, str):
+            fname = self.joinpath(fname)
+        res = {}
+        outdir = outdir or self
+        wb = openpyxl.load_workbook(str(fname), data_only=True)
+        for sname in wb.sheetnames:
+            sheet = wb.get_sheet_by_name(sname)
+            path = outdir.joinpath(fname.stem + '.' + slug(sname, lowercase=False) + '.csv')
+            with dsv.UnicodeWriter(path) as writer:
+                for row in sheet.rows:
+                    writer.writerow([_excel_value(col.value) for col in row])
+            res[sname] = path
+        return res
+
+    @contextlib.contextmanager
+    def temp_download(self, url, fname, log=None):
+        p = None
+        try:
+            p = self.download(url, fname, log=log)
+            yield p
+        finally:
+            if p and p.exists():
+                p.unlink()
+
+    def download(self, url, fname, log=None, skip_if_exists=False):
+        p = self.joinpath(fname)
+        if p.exists() and skip_if_exists:
+            return p
+        res = get_url(url, log=log, stream=True)
+        with open(str(self / fname), 'wb') as fp:
+            for chunk in res.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    fp.write(chunk)
+        return p
+
+    def download_and_unpack(self, url, *paths, **kw):
+        """
+        Download a zipfile and immediately unpack selected content.
+
+        :param url:
+        :param paths:
+        :param kw:
+        :return:
+        """
+        with self.temp_download(url, 'ds.zip', log=kw.pop('log', None)) as zipp:
+            with TemporaryDirectory() as tmpdir:
+                with zipfile.ZipFile(str(zipp)) as zipf:
+                    for info in zipf.infolist():
+                        if (not paths) or info.filename in paths:
+                            zipf.extract(info, path=str(tmpdir))
+                            shutil.copy(str(tmpdir.joinpath(info.filename)), str(self))
