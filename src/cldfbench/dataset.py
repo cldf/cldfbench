@@ -6,16 +6,20 @@ import shutil
 import pkg_resources
 from xml.etree import ElementTree as et
 
+import attr
 from clldutils.path import import_module, TemporaryDirectory
 from clldutils.misc import xmlchars, lazyproperty, slug
 from clldutils import jsonlib
 from csvw import dsv
+from pycldf import Generic
 from pycldf.sources import Source
 import termcolor
 import xlrd
 import openpyxl
 import requests
 import pybtex
+
+from cldfbench import cldf
 
 
 def iter_datasets(ep='cldfbench.dataset'):
@@ -47,6 +51,13 @@ def get_dataset(spec, **kw):
                 return obj(**kw)
 
 
+@attr.s
+class CLDFSpec(object):
+    module = attr.ib(default=Generic)
+    metadata = attr.ib(default=None)
+    metadata_name = attr.ib(default=None)
+
+
 class Dataset(object):
     """
     A cldfbench dataset ties together
@@ -62,6 +73,7 @@ class Dataset(object):
     """
     dir = None
     id = None
+    cldf_spec = CLDFSpec()
 
     def __init__(self):
         if not self.dir:
@@ -79,6 +91,10 @@ class Dataset(object):
     def etc_dir(self):
         return DataDir(self.dir / 'etc')
 
+    @lazyproperty
+    def cldf_writer(self):
+        return cldf.Writer(self)
+
 
 def get_url(url, log=None, **kw):
     res = requests.get(url, **kw)
@@ -90,15 +106,26 @@ def get_url(url, log=None, **kw):
 
 
 class DataDir(type(pathlib.Path())):
+    def _path(self, fname):
+        """
+        Interpret strings without "/" as names of files in `self`.
+
+        :param fname:
+        :return: `pathlib.Path` instance
+        """
+        if isinstance(fname, str) and '/' not in fname:
+            return self / fname
+        return pathlib.Path(fname)
+
     def read(self, fname, encoding='utf8'):
-        return self.joinpath(fname).read_text(encoding=encoding)
+        return self._path(fname).read_text(encoding=encoding)
 
     def write(self, fname, text, encoding='utf8'):
-        self.joinpath(fname).write_text(text, encoding=encoding)
+        self._path(fname).write_text(text, encoding=encoding)
         return fname
 
     def read_csv(self, fname, **kw):
-        return list(dsv.reader(self.joinpath(fname), **kw))
+        return list(dsv.reader(self._path(fname), **kw))
 
     def read_xml(self, fname, wrap=True):
         xml = xmlchars(self.read(fname))
@@ -107,15 +134,14 @@ class DataDir(type(pathlib.Path())):
         return et.fromstring(xml.encode('utf8'))
 
     def read_json(self, fname, **kw):
-        return jsonlib.load(fname)
+        return jsonlib.load(self._path(fname))
 
     def read_bib(self, fname='sources.bib'):
         bib = pybtex.database.parse_string(self.read(fname), bib_format='bibtex')
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
 
     def xls2csv(self, fname, outdir=None):
-        if isinstance(fname, str):
-            fname = self.joinpath(fname)
+        fname = self._path(fname)
         res = {}
         outdir = outdir or self
         wb = xlrd.open_workbook(str(fname))
@@ -137,8 +163,7 @@ class DataDir(type(pathlib.Path())):
                 return '{0}'.format(int(x))
             return '{0}'.format(x).strip()
 
-        if isinstance(fname, str):
-            fname = self.joinpath(fname)
+        fname = self._path(fname)
         res = {}
         outdir = outdir or self
         wb = openpyxl.load_workbook(str(fname), data_only=True)
@@ -162,7 +187,7 @@ class DataDir(type(pathlib.Path())):
                 p.unlink()
 
     def download(self, url, fname, log=None, skip_if_exists=False):
-        p = self.joinpath(fname)
+        p = self._path(fname)
         if p.exists() and skip_if_exists:
             return p
         res = get_url(url, log=log, stream=True)

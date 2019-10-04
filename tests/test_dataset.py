@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from cldfbench.dataset import get_dataset, Dataset, get_url
+from cldfbench.dataset import get_dataset, Dataset, get_url, CLDFSpec
 
 
 @pytest.fixture()
@@ -24,7 +24,10 @@ def ds(ds_cls, fixtures_dir, tmpdir):
 
 
 def test_get_dataset_from_path():
-    assert get_dataset(pathlib.Path(__file__).parent / 'fixtures' / 'module.py').id == 'thing'
+    ds = get_dataset(pathlib.Path(__file__).parent / 'fixtures' / 'module.py')
+    assert ds.id == 'thing'
+    assert not ds.cldf_dir.exists()
+    assert not ds.etc_dir.exists()
 
 
 def test_get_dataset_from_id(mocker, ds_cls):
@@ -41,8 +44,9 @@ def test_get_url(mocker):
 
 
 def test_datadir(ds):
-    ds.raw_dir.write('fname', 'stuff')
-    assert ds.raw_dir.read('fname') == 'stuff'
+    ds.raw_dir.write('fname', '{"a": 2}')
+    assert ds.raw_dir.read('fname')
+    assert ds.raw_dir.read_json('fname')['a'] == 2
     ds.raw_dir.write('sources.bib', '@article{id,\ntitle={the title}\n}')
     assert len(ds.raw_dir.read_bib()) == 1
 
@@ -69,3 +73,22 @@ def test_datadir_download_and_unpack(ds, mocker):
                     return_value=[ds.raw_dir.joinpath('test.zip').open('rb').read()]))))
     ds.raw_dir.download_and_unpack(None)
     assert ds.raw_dir.joinpath('setup.py').exists()
+    ds.raw_dir.download(None, 'fname')
+    ds.raw_dir.download(None, 'fname', skip_if_exists=True)
+
+
+def test_cldf_invalid_module(ds):
+    ds.cldf_spec = CLDFSpec(module='invalid')
+    with pytest.raises(ValueError):
+        _ = ds.cldf_writer
+
+
+def test_cldf(ds):
+    with ds.cldf_writer as writer:
+        writer.cldf.add_component('ValueTable')
+        writer['ValueTable', 'value'].separator = '|'
+        writer.objects['ValueTable'].append(
+            dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
+    assert ds.cldf_dir.joinpath('Generic-metadata.json').exists()
+    assert ds.cldf_dir.read_csv('values.csv', dicts=True)[0]['Value'] == '1|2'
+    assert ds.cldf_writer.validate()
