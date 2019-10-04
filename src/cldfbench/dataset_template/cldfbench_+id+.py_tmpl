@@ -1,0 +1,26 @@
+import pathlib
+
+from cldfbench import Dataset as BaseDataset
+
+
+class Dataset(BaseDataset):
+    dir = pathlib.Path(__file__).parent
+    id = "{id}"
+
+    def cmd_download(self, **kw):
+        """
+        Download files to the raw/ directory. You can use helpers methods of `self.raw_dir`, e.g.
+
+        >>> self.raw_dir.download(url, fname)
+        """
+        pass
+
+    def cmd_install(self, **kw):
+        """
+        Convert the raw data to a CLDF dataset.
+
+        >>> with self.cldf_writer as ds:
+        ...     ds.objects[<TABLE>].append(dict(...))
+        """
+        with self.cldf_writer as ds:
+            pass

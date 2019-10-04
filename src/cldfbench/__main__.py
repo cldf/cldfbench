@@ -12,10 +12,47 @@ The basic invocation looks like
 
 """
 import sys
+import pathlib
 
-from clldutils.clilib import ArgumentParserWithLogging
+from clldutils.clilib import ArgumentParserWithLogging, command, ParserError
 
 import cldfbench
+from cldfbench import scaffold
+
+
+@command('list')
+def list_(args):
+    for sc in scaffold.iter_scaffolds():
+        print('{}: {}'.format(sc.prefix, sc.__doc__ or ''))
+
+
+@command()
+def new(args):
+    """Usage:
+
+    cldfbench new SCAFFOLD_ID OUT_DIR
+    """
+    # TODO: command to create skeleton for new dataset!
+    # (with options for setup.py, test.py, metadata.json?)
+
+    if len(args.args) < 2:
+        raise ParserError('scaffold name or output directory missing!')
+
+    for sc in scaffold.iter_scaffolds():
+        if sc.prefix == args.args[0]:
+            break
+    else:
+        raise ParserError('Invalid scaffold id: {0}'.format(args.args[0]))
+
+    tmpl = sc()
+    md = tmpl.metadata.elicit()
+    out = pathlib.Path(args.args[1])
+    tmpl.render(out, md)
+    test_file = (out / 'abc' / 'raw' / 'test')
+    test_file.write_text('abc', encoding='utf-8')
+    # Re-running will recreate sub-directories:
+    tmpl.render(out, md)
+    assert not test_file.exists()
 
 
 def main(args=None):

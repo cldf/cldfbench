@@ -21,6 +21,8 @@ import pybtex
 
 from cldfbench import cldf
 
+__all__ = ['iter_datasets', 'get_dataset', 'Dataset']
+
 
 def iter_datasets(ep='cldfbench.dataset'):
     for ep in pkg_resources.iter_entry_points(ep):
@@ -94,6 +96,10 @@ class Dataset(object):
     @lazyproperty
     def cldf_writer(self):
         return cldf.Writer(self)
+
+    #
+    # TODO: workflow commands, to be tied into cli!
+    #
 
 
 def get_url(url, log=None, **kw):

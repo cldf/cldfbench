@@ -20,6 +20,9 @@ setup(
         'console_scripts': [
             'cldfbench=cldfbench.__main__:main',
         ],
+        'cldfbench.scaffold': [
+            'cldfbench=cldfbench.scaffold:Template'
+        ],
     },
     platforms='any',
     python_requires='>=3.5',

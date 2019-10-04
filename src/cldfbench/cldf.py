@@ -38,7 +38,7 @@ class Writer(object):
 
         mdname = self.dataset.cldf_spec.metadata_name
         if not mdname:
-            mdname = '{0}{1}'.format(mod.id, MD_SUFFIX)
+            mdname = 'cldf{0}'.format(MD_SUFFIX)
 
         shutil.copy(str(md), str(self.dataset.cldf_dir / mdname))
         self.cldf = mod.cls.from_metadata(self.dataset.cldf_dir / mdname)
