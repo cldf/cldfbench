@@ -102,7 +102,7 @@ class Template(object):
                     if target.exists():
                         shutil.rmtree(str(target))
                     shutil.copytree(str(path), str(target))
-        #del md['id']
+
         if self.with_metadata_json:
             with (outdir / 'metadata.json').open('w', encoding='utf-8') as fp:
                 return json.dump(metadata, fp, indent=4)

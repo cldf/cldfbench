@@ -56,20 +56,20 @@ class Writer(object):
         self.write(**self.objects)
 
     def write(self, **kw):
-        #self.cldf.properties.update(self.dataset.metadata.common_props)
+        # self.cldf.properties.update(self.dataset.metadata.common_props)
         self.cldf.properties['rdf:ID'] = self.dataset.id
         self.cldf.properties['rdf:type'] = 'http://www.w3.org/ns/dcat#Distribution'
-        #if self.dataset.github_repo:
+        # if self.dataset.github_repo:
         #    self.cldf.properties['dcat:accessURL'] = 'https://github.com/{0}'.format(
         #        self.dataset.github_repo)
 
-        #self.cldf.add_provenance()
+        # self.cldf.add_provenance()
 
-        #self.cldf.tablegroup.notes.append(collections.OrderedDict([
+        # self.cldf.tablegroup.notes.append(collections.OrderedDict([
         #    ('dc:title', 'environment'),
         #    ('properties', collections.OrderedDict([
         #        ('glottolog_version', self.dataset.glottolog.version),
         #        ('concepticon_version', self.dataset.concepticon.version),
         #    ]))
-        #]))
+        # ]))
         self.cldf.write(**kw)
