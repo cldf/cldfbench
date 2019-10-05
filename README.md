@@ -8,18 +8,42 @@ Tooling to create CLDF datasets from existing data
 
 ## Overview
 
-With `pylexibank` we have a tool to create CLDF Wordlists from existing data
-- hooking in data from Glottolog and Concepticon
-- allowing for tight quality control.
+This package provides tools to curate cross-linguistic data, with the goal of
+packaging it as [CLDF](https://cldf.clld.org) dataset.
 
-it would be useful to extract functionality that can also be used to create other
-types of CLDF data, in particular StructureDatasets.
+In particular, it supports a workflow where 
+- "raw" source data is downloaded to a `raw` subdirectory,
+- and subsequently converted to a CLDF dataset in a `cldf` subdirectory, with the help of
+  - configuration data in a `etc` directory
+  - custom Python code (a subclass of `cldfbench.Dataset` which implements the workflow actions)
+
+This workflow is supported via
+- a commandline interface `cldfbench` which calls the workflow actions via subcommands,
+- a `cldfbench.Dataset` base class, which must be overwritten in a custom module
+  to hook custom code into the workflow.
 
 
-## Specification
+### Creating a skeleton for a new dataset directory
 
-Generally, partitioning that data of a lexibank dataset into
-- `raw/`
-- `etc/`
-- `cldf/`
-seems to work well and should be kept for a more generic tool as well.
+A directory containing stub entries for a dataset can be created running
+
+```bash
+cldfbench new cldfbench OUTDIR
+```
+
+This will create the following layout (where `<ID>` stands for the chosen dataset ID):
+```
+<ID>/
+├── cldf               # A stub directory for the CLDF data
+│   └── README.md
+├── cldfbench_<ID>.py  # The python module, providing the Dataset subclass
+├── etc                # A stub directory for the configuration data
+│   └── README.md
+├── metadata.json      # The metadata provided to the subcommand serialized as JSON
+├── raw                # A stub directory for the raw data
+│   └── README.md
+├── setup.cfg          # Python setup config, providing defaults for test integration
+├── setup.py           # Python setup file, making the dataset "installable" 
+├── test.py            # The python code to run for dataset validation
+└── .travis.yml        # Integrate the validation with Travis-CI
+```

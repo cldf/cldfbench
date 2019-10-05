@@ -48,11 +48,6 @@ def new(args):
     md = tmpl.metadata.elicit()
     out = pathlib.Path(args.args[1])
     tmpl.render(out, md)
-    test_file = (out / 'abc' / 'raw' / 'test')
-    test_file.write_text('abc', encoding='utf-8')
-    # Re-running will recreate sub-directories:
-    tmpl.render(out, md)
-    assert not test_file.exists()
 
 
 def main(args=None):
