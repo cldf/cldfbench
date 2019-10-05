@@ -22,6 +22,8 @@ def test_list(capsys, mocker):
 def test_new(tmpdir, mocker):
     with pytest.raises(ParserError):
         cli.new(mocker.Mock(args=[]))
+    with pytest.raises(ParserError):
+        cli.new(mocker.Mock(args=['xyz', '.']))
     mocker.patch('cldfbench.scaffold.input', mocker.Mock(return_value='abc'))
     cli.new(mocker.Mock(args=['cldfbench', str(tmpdir)]))
     assert pathlib.Path(str(tmpdir)).joinpath('abc').is_dir()

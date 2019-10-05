@@ -1,6 +1,6 @@
 import pathlib
 
-from cldfbench import Dataset as BaseDataset
+from {package} import Dataset as BaseDataset
 
 
 class Dataset(BaseDataset):

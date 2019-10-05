@@ -2,17 +2,17 @@ from setuptools import setup
 
 
 setup(
-    name='cldfbench_{id}',
-    py_modules=['cldfbench_{id}'],
+    name='{prefix}_{id}',
+    py_modules=['{prefix}_{id}'],
     include_package_data=True,
     zip_safe=False,
     entry_points={{
         'cldfbench.dataset': [
-            '{id}=cldfbench_{id}:Dataset',
+            '{id}={prefix}_{id}:Dataset',
         ]
     }},
     install_requires=[
-        'pylexibank>=1.1.1',
+        'cldfbench',
     ],
     extras_require={{
         'test': [
