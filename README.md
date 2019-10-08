@@ -71,7 +71,10 @@ Curating a dataset on GitHub also provides a simple way to archiving and publish
 released versions of the data. You can hook up your repository with [Zenodo](https://zenodo.org) (following [this guide](https://guides.github.com/activities/citable-code/)). Then, Zenodo will pick up any released package, assign a DOI to it, archive it and
 make it accessible in the long-term.
 
-Hook-up with Zenodo requires the repository to be public (not private). You should also consider using an institutional account on GitHub and Zenodo to associate the repository with. Currently, only the user account registering a repository on Zenodo can change any metadata of releases lateron.
+Some notes:
+- Hook-up with Zenodo requires the repository to be public (not private).
+- You should consider using an institutional account on GitHub and Zenodo to associate the repository with. Currently, only the user account registering a repository on Zenodo can change any metadata of releases lateron.
+- Once released and archived with Zenodo, it's a good idea to add the DOI assigned by Zenodo to the release description on GitHub.
 
 Thus, with a setup as described here, you can make sure you create [FAIR data](https://en.wikipedia.org/wiki/FAIR_data).
 
