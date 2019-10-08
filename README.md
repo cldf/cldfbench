@@ -47,3 +47,31 @@ This will create the following layout (where `<ID>` stands for the chosen datase
 ├── test.py            # The python code to run for dataset validation
 └── .travis.yml        # Integrate the validation with Travis-CI
 ```
+
+
+## Curating a dataset on GitHub
+
+One of the design goals of CLDF was to specify a data format that plays well with
+version control. Thus, it's natural - and actually recommended - to curate a CLDF
+dataset in a version controled repository. The most popular way to do this in a
+collaborative fashion is by using a [git](https://git-scm.com/) repository hosted on 
+[GitHub](https://github.com).
+
+The directory layout supported by `cldfbench` caters to this use case in several ways:
+- Each directory contains a file `README.md`, which will be rendered as human readable
+  description when browsing the repository at GitHub.
+- The file `.travis.yml` contains the configuration for hooking up a repository with
+  [Travis CI](https://www.travis-ci.org/), to provide continuous consistency checking
+  of the data.
+
+
+## Archiving a dataset with Zenodo
+
+Curating a dataset on GitHub also provides a simple way to archiving and publishing
+released versions of the data. You can hook up your repository with [Zenodo](https://zenodo.org) (following [this guide](https://guides.github.com/activities/citable-code/)). Then, Zenodo will pick up any released package, assign a DOI to it, archive it and
+make it accessible in the long-term.
+
+Hook-up with Zenodo requires the repository to be public (not private). You should also consider using an institutional account on GitHub and Zenodo to associate the repository with. Currently, only the user account registering a repository on Zenodo can change any metadata of releases lateron.
+
+Thus, with a setup as described here, you can make sure you create [FAIR data](https://en.wikipedia.org/wiki/FAIR_data).
+
