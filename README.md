@@ -75,6 +75,7 @@ Some notes:
 - Hook-up with Zenodo requires the repository to be public (not private).
 - You should consider using an institutional account on GitHub and Zenodo to associate the repository with. Currently, only the user account registering a repository on Zenodo can change any metadata of releases lateron.
 - Once released and archived with Zenodo, it's a good idea to add the DOI assigned by Zenodo to the release description on GitHub.
+- To make sure a release is picked up by Zenodo, the version number must start with a letter, e.g. "v1.0" - **not** "1.0".
 
 Thus, with a setup as described here, you can make sure you create [FAIR data](https://en.wikipedia.org/wiki/FAIR_data).
 
