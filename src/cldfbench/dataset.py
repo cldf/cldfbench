@@ -6,12 +6,10 @@ import shutil
 import pkg_resources
 from xml.etree import ElementTree as et
 
-import attr
 from clldutils.path import import_module, TemporaryDirectory
 from clldutils.misc import xmlchars, lazyproperty, slug
 from clldutils import jsonlib
 from csvw import dsv
-from pycldf import Generic
 from pycldf.sources import Source
 import termcolor
 import xlrd
@@ -19,7 +17,7 @@ import openpyxl
 import requests
 import pybtex
 
-from cldfbench import cldf
+from cldfbench.cldf import CLDFWriter
 
 __all__ = ['iter_datasets', 'get_dataset', 'Dataset']
 
@@ -53,13 +51,6 @@ def get_dataset(spec, **kw):
                 return obj(**kw)
 
 
-@attr.s
-class CLDFSpec(object):
-    module = attr.ib(default=Generic)
-    metadata = attr.ib(default=None)
-    metadata_name = attr.ib(default=None)
-
-
 class Dataset(object):
     """
     A cldfbench dataset ties together
@@ -75,7 +66,6 @@ class Dataset(object):
     """
     dir = None
     id = None
-    cldf_spec = CLDFSpec()
 
     def __init__(self):
         if not self.dir:
@@ -93,9 +83,8 @@ class Dataset(object):
     def etc_dir(self):
         return DataDir(self.dir / 'etc')
 
-    @lazyproperty
-    def cldf_writer(self):
-        return cldf.Writer(self)
+    def cldf_writer(self, outdir=None, cldf_spec=None):
+        return CLDFWriter(outdir or self.cldf_dir, cldf_spec)
 
     #
     # TODO: workflow commands, to be tied into cli!
