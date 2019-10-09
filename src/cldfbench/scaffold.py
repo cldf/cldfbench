@@ -3,6 +3,11 @@ Functionality to create a skeleton of a directory layout for the curation of a C
 
 Customized templates can be registered (to be used with the `cldfbench new` command) by providing
 the path to the class as `cldfbench.scaffold` entry point.
+
+Templates can be customized by
+- providing additional (or entirely different) template files, by overwriting `Template.dirs`
+- providing more metadata as template variables, by overwriting `Template.metadata` with a
+  custom subclass of `Metadata`.
 """
 import pathlib
 import re
@@ -86,7 +91,6 @@ class Template(object):
                     if path.suffix in ['.pyc']:
                         continue  # pragma: no cover
                     target = path.name
-                    content = path.read_text(encoding='utf-8')
                     if '+' in path.name:
                         target = re.sub(
                             '\+([a-z]+)\+',
@@ -94,9 +98,11 @@ class Template(object):
                             path.name
                         ).format(**metadata)
                     if target.endswith('_tmpl'):
+                        content = path.read_text(encoding='utf-8')
                         target = target[:-5]
-                        content = content.format(**metadata)
-                    (outdir / target).write_text(content, encoding='utf-8')
+                        (outdir / target).write_text(content.format(**metadata), encoding='utf-8')
+                    else:
+                        shutil.copy(str(path), str(outdir / target))
                 else:
                     target = outdir / path.name
                     if target.exists():
