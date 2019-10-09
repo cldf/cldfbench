@@ -4,6 +4,7 @@ import contextlib
 import zipfile
 import shutil
 import pkg_resources
+import logging
 from xml.etree import ElementTree as et
 
 from clldutils.path import import_module, TemporaryDirectory
@@ -17,17 +18,20 @@ import openpyxl
 import requests
 import pybtex
 
+import cldfbench
 from cldfbench.cldf import CLDFWriter
 
-__all__ = ['iter_datasets', 'get_dataset', 'Dataset']
+__all__ = ['iter_datasets', 'get_dataset', 'Dataset', 'ENTRY_POINT']
+ENTRY_POINT = 'cldfbench.dataset'
+NOOP = -1
 
 
-def iter_datasets(ep='cldfbench.dataset'):
+def iter_datasets(ep=ENTRY_POINT):
     for ep in pkg_resources.iter_entry_points(ep):
         yield ep.load()
 
 
-def get_dataset(spec, **kw):
+def get_dataset(spec, ep=ENTRY_POINT, **kw):
     """
     Get an initialised `Dataset` instance.
 
@@ -37,7 +41,7 @@ def get_dataset(spec, **kw):
     """
     # First assume `spec` is the ID of an installed dataset:
     # iterate over registered entry points
-    for cls in iter_datasets():
+    for cls in iter_datasets(ep=ep):
         if cls.id == spec:
             return cls(**kw)
 
@@ -71,6 +75,9 @@ class Dataset(object):
         if not self.dir:
             self.dir = pathlib.Path(inspect.getfile(self.__class__)).parent
 
+    def __str__(self):
+        return '{0.__class__.__name__} "{0.id}" at {1}'.format(self, self.dir.resolve())
+
     @lazyproperty
     def cldf_dir(self):
         return DataDir(self.dir / 'cldf')
@@ -87,8 +94,22 @@ class Dataset(object):
         return CLDFWriter(outdir or self.cldf_dir, cldf_spec)
 
     #
-    # TODO: workflow commands, to be tied into cli!
+    # Workflow commands are implemented with two methods for each command:
+    # - cmd_<command>: The implementation of the command, typically overwritten by datasets.
+    # - _cmd_<command>: An (optional) wrapper providing setup and teardown functionality, calling
+    #   cmd_<command> in between.
     #
+    def cmd_download(self, **kw):
+        self._not_implemented('download')
+        return NOOP
+
+    def cmd_makecldf(self, **kw):
+        self._not_implemented('makecldf')
+        return NOOP
+
+    def _not_implemented(self, method):
+        log = logging.getLogger(cldfbench.__name__)
+        log.warning('cmd_{0} not implemented for dataset {1}'.format(method, self.id))
 
 
 def get_url(url, log=None, **kw):

@@ -8,48 +8,78 @@ triggered using this cli, most of them require common configuration.
 
 The basic invocation looks like
 
-    cldfbanch [OPTIONS] <command> [args]
+    cldfbench [OPTIONS] <command> [args]
 
 """
 import sys
-import pathlib
+import argparse
+import logging
 
-from clldutils.clilib import ArgumentParserWithLogging, command, ParserError
+from clldutils.clilib import ParserError
+from clldutils.loglib import Logging, get_colorlog
 
 import cldfbench
-from cldfbench import scaffold
 
 
-@command('list')
-def list_(args):
-    for sc in scaffold.iter_scaffolds():
-        print('{}: {}'.format(sc.prefix, sc.__doc__ or ''))
-
-
-@command()
-def new(args):
-    """Usage:
-
-    cldfbench new SCAFFOLD_ID OUT_DIR
+def discover_commands():
+    """ Autodiscover and import all modules in the cldfbench.commands namespace.
     """
-    # TODO: command to create skeleton for new dataset!
-    # (with options for setup.py, test.py, metadata.json?)
-
-    if len(args.args) < 2:
-        raise ParserError('scaffold name or output directory missing!')
-
-    for sc in scaffold.iter_scaffolds():
-        if sc.prefix == args.args[0]:
-            break
-    else:
-        raise ParserError('Invalid scaffold id: {0}'.format(args.args[0]))
-
-    tmpl = sc()
-    md = tmpl.metadata.elicit()
-    out = pathlib.Path(args.args[1])
-    tmpl.render(out, md)
+    import pkgutil
+    import importlib
+    import cldfbench.commands
+    for _, name, ispkg in pkgutil.iter_modules(cldfbench.commands.__path__):
+        if not ispkg:
+            ipath = cldfbench.commands.__name__ + "." + name
+            yield name, importlib.import_module(ipath)
 
 
-def main(args=None):
-    parser = ArgumentParserWithLogging(cldfbench.__name__)
-    sys.exit(parser.main(args))
+def main(args=None, catch_all=False, parsed_args=None):  # pragma: no cover
+    parser = argparse.ArgumentParser(
+        prog=cldfbench.__name__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('--log', default=get_colorlog(cldfbench.__name__), help=argparse.SUPPRESS)
+    parser.add_argument(
+        '--log-level',
+        default=logging.INFO,
+        help='log level [ERROR|WARN|INFO|DEBUG]',
+        type=lambda x: getattr(logging, x))
+
+    subparsers = parser.add_subparsers(
+        title="available commands",
+        description='Run "COMAMND -h" to get help for a specific command.',
+        metavar="COMMAND")
+
+    for name, mod in discover_commands():
+        subparser = subparsers.add_parser(
+            name,
+            help=mod.__doc__.strip().splitlines()[0] if mod.__doc__.strip() else '',
+            description=mod.__doc__,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        if hasattr(mod, 'register'):
+            mod.register(subparser)
+        subparser.set_defaults(main=mod.run)
+
+    args = parsed_args or parser.parse_args(args=args)
+    if not hasattr(args, "main"):
+        parser.print_help()
+        return 1
+
+    with Logging(args.log, level=args.log_level):
+        try:
+            return args.main(args) or 0
+        except KeyboardInterrupt:
+            return 0
+        except ParserError as e:
+            print(e)
+            parser.print_help()
+            return 64
+        except Exception as e:
+            if catch_all:
+                print(e)
+                return 1
+            raise
+
+
+if __name__ == '__main__':  # pragma: no cover
+    sys.exit(main() or 0)
