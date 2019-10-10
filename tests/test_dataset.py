@@ -86,3 +86,4 @@ def test_cldf(ds):
     assert ds.cldf_dir.joinpath('Generic-metadata.json').exists()
     assert ds.cldf_dir.read_csv('values.csv', dicts=True)[0]['Value'] == '1|2'
     assert ds.cldf_writer().validate()
+    ds.cmd_makecldf()

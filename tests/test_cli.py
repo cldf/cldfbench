@@ -11,6 +11,12 @@ def _main(cmd):
     cli.main(shlex.split(cmd))
 
 
+def test_help(capsys):
+    _main('')
+    out, _ = capsys.readouterr()
+    assert 'usage' in out
+
+
 def test_new(tmpdir, mocker):
     with pytest.raises(SystemExit):
         _main('new --template=xyz')
@@ -45,4 +51,5 @@ def test_download(fixtures_dir):
 
 
 def test_makecldf(fixtures_dir):
-    _main('makecldf ' + str(fixtures_dir / 'module.py'))
+    with pytest.raises(SystemExit):
+        _main('makecldf ' + str(fixtures_dir / 'module.py') + ' ' + str(fixtures_dir))

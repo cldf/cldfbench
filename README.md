@@ -23,7 +23,7 @@ This workflow is supported via
   to hook custom code into the workflow.
 
 
-### Creating a skeleton for a new dataset directory
+## Creating a skeleton for a new dataset directory
 
 A directory containing stub entries for a dataset can be created running
 
@@ -47,6 +47,50 @@ This will create the following layout (where `<ID>` stands for the chosen datase
 ├── test.py            # The python code to run for dataset validation
 └── .travis.yml        # Integrate the validation with Travis-CI
 ```
+
+## Dataset discovery
+
+TODO: by entry point, by module
+
+
+## Implementing CLDF creation
+
+`cldfbench` provides tools to make CLDF creation simple. Still, each dataset is
+different, and so each dataset will have to provide its own custom code to do so.
+This custom code goes into the `cmd_makecldf` method of the `Dataset` subclass in
+the dataset's python module.
+
+Typically, this code will make use of one or more
+- `cldfbench.CLDFWriter` instances, which can be obtained by calling `Dataset.cldf_writer`, passing in a
+- `cldfbench.CLDFSpec` instance, which describes what kind of CLDF to create.
+
+`cldfbench` supports several scenarios of CLDF creation:
+- The typical use case is turning raw data into a single CLDF dataset. This would
+  require instantiating one `CLDFWriter` writer in the `cmd_makecldf` method, and
+  the defaults of `CLDFSpec` will probably be ok.
+- But it is also possible to create multiple CLDF datasets:
+  - For a dataset containing both, lexical and typological data, it may be appropriate
+    to create a `Ẁordlist` and a `StructureDataset`. To do so, one would have to
+    call `cldf_writer` twice, passing in an approriate `CLDFSpec`. Note that if
+    both CLDF datasets are created in the same directory, they can share the
+    `LanguageTable` - but would have to specify distinct file names for the
+    `ParameterTable`, passing distinct values to `CLDFSpec.data_fnames`
+  - When creating multiple datasets of the same CLDF module, e.g. to split a large  dataset into smaller chunks, care must be taken to also disambiguate the name
+    of the metadata file, passing distinct values to `CLDFSpec.metadata_fname`.
+
+When creating CLDF, it is also often useful to have standard reference catalogs
+accessible, in particular Glottolog. See the section on [Catalogs](#catalogs) for
+a description of how this is supported by `cldfbench`.
+
+
+## Commands
+
+TODO: custom commands
+
+
+## Catalogs
+
+TODO: Catalog objects, Catalogs in cli,
 
 
 ## Curating a dataset on GitHub
