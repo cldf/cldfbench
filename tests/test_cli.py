@@ -26,9 +26,8 @@ def test_with_dataset_error(fixtures_dir, capsys):
     with pytest.raises(DatasetNotFoundException):
         _main('info abc')
 
-    _main('run ' + str(fixtures_dir / 'module.py') + ' xyz')
-    out, _ = capsys.readouterr()
-    assert 'no xyz command' in out
+    with pytest.raises(SystemExit):
+        _main('run ' + str(fixtures_dir / 'module.py') + ' xyz')
 
 
 def test_info(capsys, fixtures_dir):

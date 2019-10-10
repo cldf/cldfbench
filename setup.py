@@ -28,12 +28,13 @@ setup(
     python_requires='>=3.5',
     install_requires=[
         'csvw>=1.5.6',
-        'clldutils>=3.0',
+        'clldutils>=3.0.1',
         'pycldf>=1.7.0',
         'xlrd',
         'openpyxl',
         'termcolor',
         'requests',
+        'gitpython',
     ],
     extras_require={
         'dev': ['flake8', 'wheel', 'twine'],

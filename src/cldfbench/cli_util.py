@@ -20,6 +20,17 @@ def add_dataset_spec(parser):
         default=ENTRY_POINT)
 
 
+def add_catalog_spec(parser, name):
+    parser.add_argument(
+        name,
+        metavar=name.upper(),
+        help='Path to repository clone of {0} data'.format(name.capitalize()))
+    parser.add_argument(
+        '--{0}-version'.format(name),
+        help='Version of {0} data to checkout'.format(name.capitalize()),
+        default=None)
+
+
 def with_dataset(args, func):
     dataset = get_dataset(args.dataset, ep=args.entry_point)
     if not dataset:
