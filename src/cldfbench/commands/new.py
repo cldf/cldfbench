@@ -8,6 +8,7 @@ from cldfbench import scaffold
 
 _templates = None
 
+
 def get_template_dict():
     global _templates
     if _templates is None:
