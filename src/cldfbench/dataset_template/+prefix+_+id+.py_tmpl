@@ -15,7 +15,7 @@ class Dataset(BaseDataset):
         """
         pass
 
-    def cmd_install(self, **kw):
+    def cmd_makecldf(self, **kw):
         """
         Convert the raw data to a CLDF dataset.
 
