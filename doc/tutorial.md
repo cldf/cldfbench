@@ -3,6 +3,17 @@
 In this tutorial we use `cldfbench` to create a CLDF `StructureDataset` from
 the data of the [WALS](https://wals.info) feature ["Consonant Inventories"](https://wals.info/feature/1A).
 
+Throughout the tutorial we will interact with `cldfbench`'s **c**ommand **l**ine **i**nterface.
+This cli is a single command `cldfbench`, providing access to subcommands. To get a list of available
+subcommands, run
+```bash
+cldfbench -h
+```
+to get help on usage of a particular subcommand (e.g. the subcommand `new`), run
+```bash
+cldfbench new -h
+```
+
 1. Create a dataset directory, initialized with a skeleton suitable for 
    curation with `cldfbench`:
 
@@ -122,4 +133,8 @@ the data of the [WALS](https://wals.info) feature ["Consonant Inventories"](http
 
 ## Going further
 
-TODO
+The CLDF data we have created so far was pretty bare-bones. We should at least include
+some metadata about the languages, and ideally also some information about the feature
+(or parameter in CLDF lingo), e.g. a description of the values for the
+[categorical variable](https://en.wikipedia.org/wiki/Categorical_variable) used in this
+example.
