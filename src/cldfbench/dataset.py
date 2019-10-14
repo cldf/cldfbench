@@ -70,6 +70,7 @@ class Dataset(object):
     dir = None
     id = None
     metadata_cls = Metadata
+    cldf_writer_cls = CLDFWriter
 
     def __init__(self):
         if not self.dir:
@@ -96,12 +97,31 @@ class Dataset(object):
 
     @property
     def default_cldf_spec(self):
+        """
+        For the typical case of a `Dataset` being used to write one CLDF dataset, this property
+        can be used to "synchronise" `cldf_writer` and `cldf_reader`, since both these methods
+        will use `default_cldf_spec` to determine the location of the CLDF metadata file.
+
+        :return: `CLDFSpec` instance.
+        """
         return CLDFSpec(dir=self.cldf_dir)
 
     def cldf_writer(self, args, cldf_spec=None):
-        return CLDFWriter(cldf_spec=cldf_spec or self.default_cldf_spec, args=args, dataset=self)
+        """
+        :param args:
+        :param cldf_spec:
+        :return: a `self.cldf_writer_cls` instance, for write-access to CLDF data. \
+        This method should be used in a with-statement, and will then return a `CLDFWriter` with \
+        an empty working directory.
+        """
+        return self.cldf_writer_cls(
+            cldf_spec=cldf_spec or self.default_cldf_spec, args=args, dataset=self)
 
     def cldf_reader(self, cldf_spec=None):
+        """
+        :param cldf_spec:
+        :return: a `pycldf.Dataset` instance, for read-access to the CLDF data.
+        """
         return (cldf_spec or self.default_cldf_spec).get_dataset()
 
     @lazyproperty
@@ -130,6 +150,10 @@ class Dataset(object):
         return NOOP
 
     def cmd_makecldf(self, args):
+        """
+        :param args: An `argparse.Namespace` including attributes:
+        - `writer`: `CLDFWriter` instance
+        """
         self._not_implemented('makecldf')
         return NOOP
 
