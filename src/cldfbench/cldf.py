@@ -101,9 +101,6 @@ class CLDFWriter(object):
             raise AttributeError('Writer.cldf is only set when Writer is used in with statement!')
         return self._cldf
 
-    def validate(self, log=None):
-        return self.cldf.validate(log)
-
     def __getitem__(self, type_):
         return self.cldf[type_]
 

@@ -94,11 +94,15 @@ class Dataset(object):
     def etc_dir(self):
         return self.dir / 'etc'
 
+    @property
+    def default_cldf_spec(self):
+        return CLDFSpec(dir=self.cldf_dir)
+
     def cldf_writer(self, args, cldf_spec=None):
-        cldf_spec = cldf_spec or CLDFSpec()
-        if not cldf_spec.dir:
-            cldf_spec.dir = self.cldf_dir
-        return CLDFWriter(cldf_spec=cldf_spec, args=args, dataset=self)
+        return CLDFWriter(cldf_spec=cldf_spec or self.default_cldf_spec, args=args, dataset=self)
+
+    def cldf_reader(self, cldf_spec=None):
+        return (cldf_spec or self.default_cldf_spec).get_dataset()
 
     @lazyproperty
     def repo(self):

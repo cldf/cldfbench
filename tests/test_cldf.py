@@ -23,6 +23,9 @@ def test_cldf_spec(tmpdir):
 
 
 def test_cldf(tmpdir):
+    with pytest.raises(AttributeError):
+        _ = CLDFWriter().cldf
+
     outdir = pathlib.Path(str(tmpdir))
     with CLDFWriter(CLDFSpec(dir=outdir)):
         pass
