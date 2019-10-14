@@ -3,7 +3,7 @@ Reference catalogs
 """
 from clldutils.misc import lazyproperty
 
-from cldfbench.util import Repository
+from cldfbench.repository import Repository
 
 try:  # pragma: no cover
     from pyglottolog import Glottolog as GlottologAPI

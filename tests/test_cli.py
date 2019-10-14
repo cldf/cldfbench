@@ -20,7 +20,7 @@ def test_help(capsys):
 def test_new(tmpdir, mocker):
     with pytest.raises(SystemExit):
         _main('new --template=xyz')
-    mocker.patch('cldfbench.scaffold.input', mocker.Mock(return_value='abc'))
+    mocker.patch('cldfbench.metadata.input', mocker.Mock(return_value='abc'))
     _main('new --out=' + str(tmpdir))
     assert pathlib.Path(str(tmpdir)).joinpath('abc').is_dir()
 

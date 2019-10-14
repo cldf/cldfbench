@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 
-from cldfbench.util import Repository
+from cldfbench.repository import Repository
 
 
 @pytest.fixture()
@@ -30,5 +30,5 @@ def repository(mocker, fixtures_dir):
         def working_dir(self):
             return self.p
 
-    mocker.patch('cldfbench.util.git', mocker.Mock(Repo=Repo))
+    mocker.patch('cldfbench.repository.git', mocker.Mock(Repo=Repo))
     return Repository(fixtures_dir)

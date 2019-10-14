@@ -8,8 +8,8 @@ from cldfbench.scaffold import Template, Metadata
 def test_custom_template(tmpdir, mocker, fixtures_dir):
     @attr.s
     class CustomMetadata(Metadata):
-        id = attr.ib(default='abc')
-        custom_var = attr.ib(default='xyz')
+        id = attr.ib(default='abc', metadata=dict(elicit=True))
+        custom_var = attr.ib(default='xyz', metadata=dict(elicit=True))
 
     class Custom(Template):
         package = 'pylexibank'
@@ -18,7 +18,7 @@ def test_custom_template(tmpdir, mocker, fixtures_dir):
         dirs = Template.dirs + [fixtures_dir]
 
     d = pathlib.Path(str(tmpdir))
-    mocker.patch('cldfbench.scaffold.input', mocker.Mock(return_value=''))
+    mocker.patch('cldfbench.metadata.input', mocker.Mock(return_value=''))
     md = Custom.metadata.elicit()
     Custom().render(d, md)
     assert d.joinpath('abc').exists()

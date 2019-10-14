@@ -1,4 +1,4 @@
-from cldfbench.util import *
+from cldfbench.repository import *
 
 
 def test_Repository(repository):

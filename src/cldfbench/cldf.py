@@ -104,8 +104,13 @@ class CLDFWriter(object):
         self.cldf.properties['rdf:type'] = 'http://www.w3.org/ns/dcat#Distribution'
         srcs = []
         # Let's see whether self.dataset is repository:
-        if self.dataset and self.dataset.repo:
-            srcs.append(self.dataset.repo.json_ld())
+        if self.dataset:
+            self.cldf.properties['rdf:ID'] = self.dataset.id
+            self.cldf.properties.update(self.dataset.metadata.common_props())
+            if self.dataset.repo:
+                if self.dataset.repo.url:
+                    self.cldf.properties['dcat:accessURL'] = self.dataset.repo.url
+                srcs.append(self.dataset.repo.json_ld())
         if self.args:
             # We inspect the cli arguments to see whether some `Catalog`'s were used.
             for cat in vars(self.args).values():
