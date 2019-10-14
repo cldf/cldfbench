@@ -67,6 +67,7 @@ class Dataset(object):
     def __init__(self):
         if not self.dir:
             self.dir = pathlib.Path(inspect.getfile(self.__class__)).parent
+        self.dir = DataDir(self.dir)
         md = self.dir / 'metadata.json'
         self.metadata = self.metadata_cls.from_file(md) if md.exists() else self.metadata_cls()
         self.metadata.id = self.id
@@ -76,15 +77,15 @@ class Dataset(object):
 
     @lazyproperty
     def cldf_dir(self):
-        return DataDir(self.dir / 'cldf')
+        return self.dir / 'cldf'
 
     @lazyproperty
     def raw_dir(self):
-        return DataDir(self.dir / 'raw')
+        return self.dir / 'raw'
 
     @lazyproperty
     def etc_dir(self):
-        return DataDir(self.dir / 'etc')
+        return self.dir / 'etc'
 
     def cldf_writer(self, args, outdir=None, cldf_spec=None):
         return CLDFWriter(outdir or self.cldf_dir, cldf_spec=cldf_spec, args=args, dataset=self)

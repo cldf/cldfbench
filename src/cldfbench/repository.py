@@ -1,3 +1,4 @@
+import re
 import pathlib
 import collections
 
@@ -37,6 +38,12 @@ class Repository:
             return url
         except AttributeError:  # pragma: no cover
             return
+
+    @lazyproperty
+    def github_repo(self):
+        match = re.search('github\.com/(?P<org>[^/]+)/(?P<repo>[^.]+)', self.url or '')
+        if match:
+            return match.group('org') + '/' + match.group('repo')
 
     @property
     def tags(self):

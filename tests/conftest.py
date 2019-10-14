@@ -21,7 +21,7 @@ def repository(mocker, fixtures_dir):
             describe=mocker.Mock(return_value='v1'),
         )
         active_branch = mocker.PropertyMock(side_effect=TypeError)
-        remotes = mocker.Mock(origin=mocker.Mock(url='http://example.org.git'))
+        remotes = mocker.Mock(origin=mocker.Mock(url='https://github.com/org/repo.git'))
 
         def __init__(self, p):
             self.p = p
