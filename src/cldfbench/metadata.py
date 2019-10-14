@@ -2,6 +2,7 @@
 Dataset metadata
 """
 import json
+import collections
 
 import attr
 from clldutils import licenses
@@ -71,7 +72,7 @@ class Metadata(object):
         """
         The metadata as JSON-LD object suitable for inclusion in CLDF metadata.
         """
-        res = {}
+        res = collections.OrderedDict()
         if self.title:
             res["dc:title"] = self.title
         if self.description:

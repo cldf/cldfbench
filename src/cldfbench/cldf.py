@@ -77,16 +77,14 @@ class CLDFWriter(object):
         self.objects = collections.defaultdict(list)
         self.args = args
         self.dataset = dataset
+        self.dir = pathlib.Path(outdir)
+        self._cldf = None
 
-        outdir = pathlib.Path(outdir)
-        if not outdir.exists():
-            outdir.mkdir()
-        self.dir = outdir
-        shutil.copy(
-            str(self.cldf_spec.default_metadata_path), str(outdir / self.cldf_spec.metadata_fname))
-
-        # Now we can initialize the CLDF Dataset:
-        self.cldf = self.cldf_spec.cls.from_metadata(outdir / self.cldf_spec.metadata_fname)
+    @property
+    def cldf(self):
+        if self._cldf is None:
+            raise AttributeError('Writer.cldf is only set when Writer is used in with statement!')
+        return self._cldf
 
     def validate(self, log=None):
         return self.cldf.validate(log)
@@ -95,21 +93,31 @@ class CLDFWriter(object):
         return self.cldf[type_]
 
     def __enter__(self):
+        self.dir.mkdir(exist_ok=True)
+        for p in self.dir.iterdir():
+            if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
+                p.unlink()
+        shutil.copy(
+            str(self.cldf_spec.default_metadata_path), str(self.dir / self.cldf_spec.metadata_fname))
+
+        # Now we can initialize the CLDF Dataset:
+        self._cldf = self.cldf_spec.cls.from_metadata(self.dir / self.cldf_spec.metadata_fname)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.write(**self.objects)
 
     def write(self, **kw):
-        self.cldf.properties['rdf:type'] = 'http://www.w3.org/ns/dcat#Distribution'
+        self.cldf.properties.setdefault('rdf:type', 'http://www.w3.org/ns/dcat#Distribution')
         srcs = []
         # Let's see whether self.dataset is repository:
         if self.dataset:
-            self.cldf.properties['rdf:ID'] = self.dataset.id
-            self.cldf.properties.update(self.dataset.metadata.common_props())
+            self.cldf.properties.setdefault('rdf:ID', self.dataset.id)
+            for k, v in self.dataset.metadata.common_props().items():
+                self.cldf.properties.setdefault(k, v)
             if self.dataset.repo:
                 if self.dataset.repo.url:
-                    self.cldf.properties['dcat:accessURL'] = self.dataset.repo.url
+                    self.cldf.properties.setdefault('dcat:accessURL', self.dataset.repo.url)
                 srcs.append(self.dataset.repo.json_ld())
         if self.args:
             # We inspect the cli arguments to see whether some `Catalog`'s were used.

@@ -18,10 +18,12 @@ def ds_cls(tmpdir):
 
 @pytest.fixture()
 def ds(ds_cls, fixtures_dir, tmpdir):
-    res = ds_cls()
-    res.raw_dir.mkdir()
+    raw = pathlib.Path(str(tmpdir)) / 'raw'
+    raw.mkdir()
     for p in fixtures_dir.glob('test.*'):
-        shutil.copy(str(p), str(tmpdir.join('raw', p.name)))
+        shutil.copy(str(p), str(raw / p.name))
+    shutil.copy(str(fixtures_dir / 'metadata.json'), str(tmpdir.join('metadata.json')))
+    res = ds_cls()
     return res
 
 
@@ -48,5 +50,5 @@ def test_cldf(ds, repository):
             dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
     assert ds.cldf_dir.joinpath('Generic-metadata.json').exists()
     assert ds.cldf_dir.read_csv('values.csv', dicts=True)[0]['Value'] == '1|2'
-    assert ds.cldf_writer(None).validate()
+    assert writer.validate()
     ds.cmd_makecldf(None)

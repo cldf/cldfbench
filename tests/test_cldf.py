@@ -24,6 +24,11 @@ def test_cldf_spec(tmpdir):
 
 def test_cldf(tmpdir):
     outdir = pathlib.Path(str(tmpdir))
+    with CLDFWriter(outdir):
+        pass
+    # The metadata was copied:
+    assert outdir.glob('*-metadata.json')
+
     with CLDFWriter(outdir, CLDFSpec(data_fnames=dict(ValueTable='data.csv'))) as writer:
         writer.cldf.add_component('ValueTable')
         writer['ValueTable', 'value'].separator = '|'
@@ -33,3 +38,6 @@ def test_cldf(tmpdir):
     values = list(ds['ValueTable'])
     assert len(values) == 1
     assert values[0]['Value'] == ['1', '2']
+
+    with pytest.raises(AttributeError):
+        CLDFWriter(outdir).validate()
