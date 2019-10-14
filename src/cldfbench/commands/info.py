@@ -9,4 +9,4 @@ def register(parser):
 
 
 def run(args):
-    with_dataset(args, lambda ds, **_: print(ds))
+    with_dataset(args, lambda ds, _: print(ds))

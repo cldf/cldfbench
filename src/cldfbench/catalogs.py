@@ -1,11 +1,9 @@
 """
 Reference catalogs
 """
-import pathlib
-
-from git import Repo
-from git.exc import NoSuchPathError, InvalidGitRepositoryError
 from clldutils.misc import lazyproperty
+
+from cldfbench.util import Repository
 
 try:  # pragma: no cover
     from pyglottolog import Glottolog as GlottologAPI
@@ -25,7 +23,7 @@ except ImportError:  # pragma: no cover
 __all__ = ['Catalog', 'Glottolog', 'Concepticon', 'CLTS', 'BUILTIN_CATALOGS']
 
 
-class Catalog:
+class Catalog(Repository):
     """
     A `Catalog` is a git repository clone (optionally with a python API to access it).
     """
@@ -37,10 +35,7 @@ class Catalog:
             raise ValueError(
                 'API for catalog {0} is not available, please install {1}!'.format(
                     self.__class__.__name__, self.__api__))
-        try:
-            self.repo = Repo(str(path))
-        except (NoSuchPathError, InvalidGitRepositoryError):
-            raise ValueError('invalid git repository: {0}'.format(path))
+        super().__init__(path)
         self._prev_branch = None
         self.tag = tag
 
@@ -60,20 +55,6 @@ class Catalog:
     @classmethod
     def cli_name(cls):
         return cls.__cli_name__ or cls.__name__.lower()
-
-    @property
-    def dir(self):
-        return pathlib.Path(self.repo.working_dir)
-
-    @property
-    def tags(self):
-        return self.repo.git.tag().split()
-
-    def describe(self):
-        return self.repo.git.describe('--always', '--tags')
-
-    def checkout(self, spec):
-        return self.repo.git.checkout(spec)
 
     @lazyproperty
     def api(self):

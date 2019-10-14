@@ -1,26 +1,10 @@
 import pytest
-from git.exc import NoSuchPathError
 
 from cldfbench.catalogs import *
 
 
 @pytest.fixture
-def catalog(mocker, fixtures_dir):
-    class Repo:
-        git = mocker.Mock(
-            tag=mocker.Mock(return_value='v1\nv2'),
-            describe=mocker.Mock(return_value='v1'),
-        )
-        active_branch = mocker.PropertyMock(side_effect=TypeError)
-
-        def __init__(self, p):
-            self.p = p
-
-        @property
-        def working_dir(self):
-            return self.p
-
-    mocker.patch('cldfbench.catalogs.Repo', Repo)
+def catalog(repository, fixtures_dir):
     return Catalog(fixtures_dir, 'tag')
 
 
@@ -42,8 +26,7 @@ def test_init_api(mocker):
     assert api.called
 
 
-def test_init_norepos(mocker, fixtures_dir):
-    mocker.patch('cldfbench.catalogs.Repo', mocker.Mock(side_effect=NoSuchPathError))
+def test_init_norepos(fixtures_dir):
     with pytest.raises(ValueError):
         _ = Catalog(fixtures_dir)
 

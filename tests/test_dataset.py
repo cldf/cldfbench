@@ -1,9 +1,11 @@
 import pathlib
+import argparse
 import shutil
 
 import pytest
 
 from cldfbench.dataset import get_dataset, get_url, Dataset
+from cldfbench.catalogs import Catalog
 
 
 @pytest.fixture()
@@ -77,13 +79,13 @@ def test_datadir_download_and_unpack(ds, mocker):
     ds.raw_dir.download(None, 'fname', skip_if_exists=True)
 
 
-def test_cldf(ds):
-    with ds.cldf_writer() as writer:
+def test_cldf(ds, repository):
+    with ds.cldf_writer(argparse.Namespace(cat=Catalog(repository.dir))) as writer:
         writer.cldf.add_component('ValueTable')
         writer['ValueTable', 'value'].separator = '|'
         writer.objects['ValueTable'].append(
             dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
     assert ds.cldf_dir.joinpath('Generic-metadata.json').exists()
     assert ds.cldf_dir.read_csv('values.csv', dicts=True)[0]['Value'] == '1|2'
-    assert ds.cldf_writer().validate()
-    ds.cmd_makecldf()
+    assert ds.cldf_writer(None).validate()
+    ds.cmd_makecldf(None)

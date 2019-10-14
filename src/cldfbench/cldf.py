@@ -1,11 +1,15 @@
+import sys
 import collections
 import shutil
 import pathlib
+import subprocess
 
 import attr
 import csvw
 from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
 from pycldf.util import pkg_path
+
+from cldfbench.catalogs import Catalog
 
 __all__ = ['CLDFWriter', 'CLDFSpec']
 
@@ -62,14 +66,22 @@ class CLDFWriter(object):
     >>> with Writer(outdir, cldf_spec) as writer:
     ...     writer.objects['ValueTable'].append(...)
     """
-    def __init__(self, outdir, cldf_spec=None):
+    def __init__(self, outdir, cldf_spec=None, args=None, dataset=None):
+        """
+        :param outdir: Directory to which to write the CLDF dataset
+        :param cldf_spec: `CLDFSpec` instance
+        :param args: `argparse.Namespace`, passed if the writer is instantiated from a cli command.
+        :param dataset: `cldfbench.Dataset`, passed if instantiated from a dataset method.
+        """
         self.cldf_spec = cldf_spec or CLDFSpec()
         self.objects = collections.defaultdict(list)
+        self.args = args
+        self.dataset = dataset
 
         outdir = pathlib.Path(outdir)
         if not outdir.exists():
             outdir.mkdir()
-
+        self.dir = outdir
         shutil.copy(
             str(self.cldf_spec.default_metadata_path), str(outdir / self.cldf_spec.metadata_fname))
 
@@ -90,6 +102,34 @@ class CLDFWriter(object):
 
     def write(self, **kw):
         self.cldf.properties['rdf:type'] = 'http://www.w3.org/ns/dcat#Distribution'
+        srcs = []
+        # Let's see whether self.dataset is repository:
+        if self.dataset and self.dataset.repo:
+            srcs.append(self.dataset.repo.json_ld())
+        if self.args:
+            # We inspect the cli arguments to see whether some `Catalog`'s were used.
+            for cat in vars(self.args).values():
+                if isinstance(cat, Catalog):
+                    srcs.append(cat.json_ld())
+        if srcs:
+            self.cldf.add_provenance(wasDerivedFrom=srcs)
+        reqs = [
+            collections.OrderedDict([
+                ('dc:title', "python"),
+                ('dc:description', sys.version.split()[0])])]
+        try:
+            subprocess.run(
+                ['pip', 'freeze'],
+                stdout=self.dir.joinpath('requirements.txt').open('wb'),
+                check=True)
+            reqs.append(
+                collections.OrderedDict([
+                    ('dc:title', "python-packages"), ('dc:relation', 'requirements.txt')]))
+        except subprocess.CalledProcessError:  # pragma: no cover
+            pass
+
+        self.cldf.add_provenance(wasGeneratedBy=reqs)
+
         for comp, fname in self.cldf_spec.data_fnames.items():
             self.cldf[comp].url = csvw.Link(fname)
         self.cldf.write(**kw)

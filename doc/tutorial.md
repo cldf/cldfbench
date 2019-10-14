@@ -48,7 +48,7 @@ cldfbench new -h
    to download the "raw" data from WALS. A `cldfbench.Dataset` provides several
    convenience methods for this kind of task. So in our case, it's a one-liner:
    ```python
-       def cmd_download(self, **kw):
+       def cmd_download(self, args):
            self.raw_dir.download('https://wals.info/feature/1A.tab', '1A.tsv')
    ```
    Having implemented the command, we can run it from the command line:
@@ -68,7 +68,7 @@ cldfbench new -h
 3. Now we want to convert WALS' quirky `tab` format to nice CLDF. We do so by
    implementing the `cmd_makecldf` method:
    ```python
-   def cmd_makecldf(self, **kw):
+   def cmd_makecldf(self, args):
        with self.cldf_writer(cldf_spec=CLDFSpec(module='StructureDataset')) as ds:
            for row in self.raw_dir.read_csv(
                    '1A.tsv',

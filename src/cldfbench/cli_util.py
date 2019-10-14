@@ -43,5 +43,5 @@ def with_dataset(args, func):
             raise ParserError('Dataset {0} has no {1} command'.format(dataset.id, func))
         func, arg = func_, []
     args.log.info('running {0} on {1} ...'.format(getattr(func, '__name__', func), dataset.id))
-    func(*arg, **vars(args))
+    func(*arg, args)
     args.log.info('... done %s [%.1f secs]' % (dataset.id, time() - s))

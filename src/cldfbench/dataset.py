@@ -20,6 +20,7 @@ import pybtex
 
 import cldfbench
 from cldfbench.cldf import CLDFWriter
+from cldfbench.util import Repository
 
 __all__ = ['iter_datasets', 'get_dataset', 'Dataset', 'ENTRY_POINT']
 ENTRY_POINT = 'cldfbench.dataset'
@@ -90,8 +91,15 @@ class Dataset(object):
     def etc_dir(self):
         return DataDir(self.dir / 'etc')
 
-    def cldf_writer(self, outdir=None, cldf_spec=None):
-        return CLDFWriter(outdir or self.cldf_dir, cldf_spec)
+    def cldf_writer(self, args, outdir=None, cldf_spec=None):
+        return CLDFWriter(outdir or self.cldf_dir, cldf_spec=cldf_spec, args=args, dataset=self)
+
+    @lazyproperty
+    def repo(self):
+        try:
+            return Repository(self.dir)
+        except ValueError:  # pragma: no cover
+            return
 
     #
     # Workflow commands are implemented with two methods for each command:
@@ -99,11 +107,13 @@ class Dataset(object):
     # - _cmd_<command>: An (optional) wrapper providing setup and teardown functionality, calling
     #   cmd_<command> in between.
     #
-    def cmd_download(self, **kw):
+    # Workflow commands must accept an `argparse.Namespace` as sole positional argument.
+    #
+    def cmd_download(self, args):
         self._not_implemented('download')
         return NOOP
 
-    def cmd_makecldf(self, **kw):
+    def cmd_makecldf(self, args):
         self._not_implemented('makecldf')
         return NOOP
 
