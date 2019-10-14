@@ -2,7 +2,6 @@ import sys
 import collections
 import shutil
 import pathlib
-import subprocess
 
 import attr
 import csvw
@@ -10,6 +9,7 @@ from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
 from pycldf.util import pkg_path
 
 from cldfbench.catalogs import Catalog
+from cldfbench.util import iter_requirements
 
 __all__ = ['CLDFWriter', 'CLDFSpec']
 
@@ -123,14 +123,12 @@ class CLDFWriter(object):
                 ('dc:title', "python"),
                 ('dc:description', sys.version.split()[0])])]
         try:
-            subprocess.run(
-                ['pip', 'freeze'],
-                stdout=self.dir.joinpath('requirements.txt').open('wb'),
-                check=True)
+            self.dir.joinpath('requirements.txt').write_text(
+                '\n'.join(iter_requirements()), encoding='utf8')
             reqs.append(
                 collections.OrderedDict([
                     ('dc:title', "python-packages"), ('dc:relation', 'requirements.txt')]))
-        except subprocess.CalledProcessError:  # pragma: no cover
+        except ValueError:  # pragma: no cover
             pass
 
         self.cldf.add_provenance(wasGeneratedBy=reqs)

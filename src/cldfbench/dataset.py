@@ -105,8 +105,7 @@ class Dataset(object):
     # Workflow commands must accept an `argparse.Namespace` as sole positional argument.
     #
     def _cmd_download(self, args):
-        if not self.raw_dir.exists():
-            self.raw_dir.mkdir()
+        self.raw_dir.mkdir(exist_ok=True)
         self.cmd_download(args)
         (self.raw_dir / 'README.md').write_text(
             'Raw data downloaded {0}'.format(datetime.utcnow().isoformat()), encoding='utf8')
