@@ -1,10 +1,20 @@
 import pathlib
+import shutil
 import shlex
+import importlib
 
 import pytest
 
 from cldfbench import __main__ as cli
 from cldfbench.cli_util import DatasetNotFoundException
+
+
+@pytest.fixture
+def tmpds(fixtures_dir, tmpdir):
+    for p in fixtures_dir.iterdir():
+        if p.is_file():
+            shutil.copy(str(p), str(tmpdir.join(p.name)))
+    return str(tmpdir.join('module.py'))
 
 
 def _main(cmd):
@@ -42,14 +52,14 @@ def test_info(capsys, fixtures_dir):
     assert 'Thing' in out
 
 
-def test_run(caplog, fixtures_dir):
-    _main('run ' + str(fixtures_dir / 'module.py') + ' download')
+def test_run(caplog, tmpds):
+    _main('run ' + tmpds + ' download')
 
 
-def test_download(fixtures_dir):
-    _main('download ' + str(fixtures_dir / 'module.py'))
+def test_download(tmpds):
+    _main('download ' + tmpds)
 
 
-def test_makecldf(fixtures_dir):
+def test_makecldf(fixtures_dir, tmpds):
     with pytest.raises(SystemExit):
-        _main('makecldf ' + str(fixtures_dir / 'module.py') + ' ' + str(fixtures_dir))
+        _main('makecldf ' + tmpds + ' ' + str(fixtures_dir))

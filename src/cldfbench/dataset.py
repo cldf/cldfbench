@@ -1,14 +1,16 @@
+import sys
 import inspect
 import pathlib
 import pkg_resources
 import logging
+import importlib
 from datetime import datetime
 
-from clldutils.path import import_module
+from clldutils.path import sys_path
 from clldutils.misc import lazyproperty
 
 import cldfbench
-from cldfbench.cldf import CLDFWriter
+from cldfbench.cldf import CLDFWriter, CLDFSpec
 from cldfbench.repository import Repository
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
@@ -41,7 +43,12 @@ def get_dataset(spec, ep=ENTRY_POINT, **kw):
     # `Dataset` subclass found in the module:
     p = pathlib.Path(spec)
     if p.exists() and p.is_file():
-        mod = import_module(p)
+        with sys_path(p.parent):
+            if p.stem in sys.modules:
+                mod = importlib.reload(sys.modules[p.stem])
+            else:
+                mod = importlib.import_module(p.stem)
+
         for _, obj in inspect.getmembers(mod):
             if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
                 return obj(**kw)
@@ -87,8 +94,11 @@ class Dataset(object):
     def etc_dir(self):
         return self.dir / 'etc'
 
-    def cldf_writer(self, args, outdir=None, cldf_spec=None):
-        return CLDFWriter(outdir or self.cldf_dir, cldf_spec=cldf_spec, args=args, dataset=self)
+    def cldf_writer(self, args, cldf_spec=None):
+        cldf_spec = cldf_spec or CLDFSpec()
+        if not cldf_spec.dir:
+            cldf_spec.dir = self.cldf_dir
+        return CLDFWriter(cldf_spec=cldf_spec, args=args, dataset=self)
 
     @lazyproperty
     def repo(self):

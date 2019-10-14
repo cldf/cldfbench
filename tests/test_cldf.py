@@ -24,12 +24,12 @@ def test_cldf_spec(tmpdir):
 
 def test_cldf(tmpdir):
     outdir = pathlib.Path(str(tmpdir))
-    with CLDFWriter(outdir):
+    with CLDFWriter(CLDFSpec(dir=outdir)):
         pass
     # The metadata was copied:
     assert outdir.glob('*-metadata.json')
 
-    with CLDFWriter(outdir, CLDFSpec(data_fnames=dict(ValueTable='data.csv'))) as writer:
+    with CLDFWriter(CLDFSpec(dir=outdir, data_fnames=dict(ValueTable='data.csv'))) as writer:
         writer.cldf.add_component('ValueTable')
         writer['ValueTable', 'value'].separator = '|'
         writer.objects['ValueTable'].append(

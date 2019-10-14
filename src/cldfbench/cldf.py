@@ -24,6 +24,7 @@ class CLDFSpec(object):
         converter=lambda cls: getattr(cls, '__name__', cls),
         validator=attr.validators.in_([m.id for m in get_modules()])
     )  # Dataset subclass or name of a module
+    dir = attr.ib(default=None, converter=lambda s: pathlib.Path(s) if s else s)
     # Path to the source file for the default metadata for a dataset:
     default_metadata_path = attr.ib(default=None)
     # Filename to be used for the actual copy of the metadata:
@@ -47,6 +48,22 @@ class CLDFSpec(object):
             self.metadata_fname = self.default_metadata_path.name
 
     @property
+    def metadata_path(self):
+        return (self.dir / self.metadata_fname) if self.dir else pathlib.Path(self.metadata_fname)
+
+    def make_clean(self):
+        if self.dir:
+            self.dir.mkdir(exist_ok=True)
+            for p in self.dir.iterdir():
+                if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
+                    p.unlink()
+        shutil.copy(str(self.default_metadata_path), str(self.metadata_path))
+
+    def get_dataset(self):
+        # Initialize a CLDF Dataset:
+        return self.cls.from_metadata(self.metadata_path)
+
+    @property
     def cls(self):
         for m in get_modules():
             if m.id == self.module:
@@ -63,12 +80,11 @@ class CLDFWriter(object):
     - provides a facade for most of the relevant attributes of a `pycldf.Dataset`.
 
     Usage:
-    >>> with Writer(outdir, cldf_spec) as writer:
+    >>> with Writer(cldf_spec) as writer:
     ...     writer.objects['ValueTable'].append(...)
     """
-    def __init__(self, outdir, cldf_spec=None, args=None, dataset=None):
+    def __init__(self, cldf_spec=None, args=None, dataset=None):
         """
-        :param outdir: Directory to which to write the CLDF dataset
         :param cldf_spec: `CLDFSpec` instance
         :param args: `argparse.Namespace`, passed if the writer is instantiated from a cli command.
         :param dataset: `cldfbench.Dataset`, passed if instantiated from a dataset method.
@@ -77,7 +93,6 @@ class CLDFWriter(object):
         self.objects = collections.defaultdict(list)
         self.args = args
         self.dataset = dataset
-        self.dir = pathlib.Path(outdir)
         self._cldf = None
 
     @property
@@ -93,15 +108,8 @@ class CLDFWriter(object):
         return self.cldf[type_]
 
     def __enter__(self):
-        self.dir.mkdir(exist_ok=True)
-        for p in self.dir.iterdir():
-            if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
-                p.unlink()
-        shutil.copy(
-            str(self.cldf_spec.default_metadata_path), str(self.dir / self.cldf_spec.metadata_fname))
-
-        # Now we can initialize the CLDF Dataset:
-        self._cldf = self.cldf_spec.cls.from_metadata(self.dir / self.cldf_spec.metadata_fname)
+        self.cldf_spec.make_clean()
+        self._cldf = self.cldf_spec.get_dataset()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -131,7 +139,7 @@ class CLDFWriter(object):
                 ('dc:title', "python"),
                 ('dc:description', sys.version.split()[0])])]
         try:
-            self.dir.joinpath('requirements.txt').write_text(
+            self.cldf_spec.dir.joinpath('requirements.txt').write_text(
                 '\n'.join(iter_requirements()), encoding='utf8')
             reqs.append(
                 collections.OrderedDict([
