@@ -8,10 +8,10 @@ from datetime import datetime
 
 from clldutils.path import sys_path
 from clldutils.misc import lazyproperty
+from cldfcatalog import Repository
 
 import cldfbench
 from cldfbench.cldf import CLDFWriter, CLDFSpec
-from cldfbench.repository import Repository
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
 
