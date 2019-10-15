@@ -8,7 +8,9 @@ from datetime import datetime
 
 from clldutils.path import sys_path
 from clldutils.misc import lazyproperty
+from clldutils.clilib import ParserError
 from cldfcatalog import Repository
+import termcolor
 
 import cldfbench
 from cldfbench.cldf import CLDFWriter, CLDFSpec
@@ -52,6 +54,9 @@ def get_dataset(spec, ep=ENTRY_POINT, **kw):
         for _, obj in inspect.getmembers(mod):
             if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
                 return obj(**kw)
+
+    raise ParserError(termcolor.colored(
+        '\nInvalid dataset spec: <{0}> {1}\n'.format(ep, spec), "red"))
 
 
 class Dataset(object):

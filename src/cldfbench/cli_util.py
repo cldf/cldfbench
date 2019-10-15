@@ -9,15 +9,19 @@ class DatasetNotFoundException(Exception):
     pass
 
 
-def add_dataset_spec(parser):
+def add_entry_point(parser, ep=ENTRY_POINT):
+    parser.add_argument(
+        '--entry-point',
+        help='Name of entry_points to identify datasets',
+        default=ep)
+
+
+def add_dataset_spec(parser, ep=ENTRY_POINT):
     parser.add_argument(
         'dataset',
         metavar='DATASET',
         help='Dataset spec, either ID of installed dataset or path to python module')
-    parser.add_argument(
-        '--entry-point',
-        help='Name of entry_points to identify datasets',
-        default=ENTRY_POINT)
+    add_entry_point(parser, ep=ep)
 
 
 def add_catalog_spec(parser, name):
@@ -31,10 +35,8 @@ def add_catalog_spec(parser, name):
         default=None)
 
 
-def with_dataset(args, func):
-    dataset = get_dataset(args.dataset, ep=args.entry_point)
-    if not dataset:
-        raise DatasetNotFoundException("No matching dataset found!")
+def with_dataset(args, func, dataset=None):
+    dataset = dataset or get_dataset(args.dataset, ep=args.entry_point)
     s = time()
     arg = [dataset]
     if isinstance(func, str):

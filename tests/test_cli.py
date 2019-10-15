@@ -1,12 +1,10 @@
 import pathlib
 import shutil
 import shlex
-import importlib
 
 import pytest
 
 from cldfbench import __main__ as cli
-from cldfbench.cli_util import DatasetNotFoundException
 
 
 @pytest.fixture
@@ -17,8 +15,8 @@ def tmpds(fixtures_dir, tmpdir):
     return str(tmpdir.join('module.py'))
 
 
-def _main(cmd):
-    cli.main(shlex.split(cmd))
+def _main(cmd, **kw):
+    cli.main(shlex.split(cmd), **kw)
 
 
 def test_help(capsys):
@@ -39,7 +37,7 @@ def test_with_dataset_error(fixtures_dir, capsys):
     with pytest.raises(SystemExit):
         _main('info')
 
-    with pytest.raises(DatasetNotFoundException):
+    with pytest.raises(SystemExit):
         _main('info abc')
 
     with pytest.raises(SystemExit):
@@ -53,7 +51,18 @@ def test_info(capsys, fixtures_dir):
 
 
 def test_run(caplog, tmpds):
-    _main('run ' + tmpds + ' download')
+    with pytest.raises(ValueError):
+        _main('run ' + tmpds + ' raise')
+
+
+def test_ls(capsys):
+    _main('ls')
+    out, _ = capsys.readouterr()
+    assert 'id ' in out
+
+    _main('ls --modules')
+    out, _ = capsys.readouterr()
+    assert 'id ' not in out
 
 
 def test_download(tmpds):
@@ -63,3 +72,8 @@ def test_download(tmpds):
 def test_makecldf(fixtures_dir, tmpds):
     with pytest.raises(SystemExit):
         _main('makecldf ' + tmpds + ' ' + str(fixtures_dir))
+
+
+def test_check(tmpds, glottolog_dir):
+    _main('makecldf ' + tmpds + ' ' + str(glottolog_dir))
+    _main('check ' + tmpds + ' ' + str(glottolog_dir))
