@@ -75,7 +75,6 @@ def test_makecldf(fixtures_dir, tmpds):
         _main('makecldf ' + tmpds + ' ' + str(fixtures_dir))
 
 
-@pytest.mark.skipif('TRAVIS' in os.environ and os.environ["TRAVIS"] == "true")
 def test_check(tmpds, glottolog_dir):
     _main('makecldf ' + tmpds + ' ' + str(glottolog_dir))
     _main('check ' + tmpds + ' ' + str(glottolog_dir))
