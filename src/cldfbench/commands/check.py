@@ -43,8 +43,8 @@ def run(args):
                     lang, lang[gccol.name]))
             elif glottocodes[lang[gccol.name]].lower().startswith('pseudo'):
                 args.log.info("Language {0} mapped to family {1}".format(
-                    lang, glottocodes[lang[gccol.name]]))
-    else:
+                    lang, glottocodes[lang[gccol.name]]))  # pragma: no cover
+    else:  # pragma: no cover
         args.log.warning('Dataset has no LanguageTable')
 
     # Check sources
