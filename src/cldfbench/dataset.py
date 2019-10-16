@@ -7,17 +7,15 @@ import importlib
 from datetime import datetime
 
 from clldutils.path import sys_path
-from clldutils.misc import lazyproperty
-from clldutils.clilib import ParserError
+from clldutils.misc import lazyproperty, nfilter
 from cldfcatalog import Repository
-import termcolor
 
 import cldfbench
 from cldfbench.cldf import CLDFWriter, CLDFSpec
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
 
-__all__ = ['iter_datasets', 'get_dataset', 'Dataset', 'ENTRY_POINT']
+__all__ = ['iter_datasets', 'get_dataset', 'get_datasets', 'Dataset', 'ENTRY_POINT']
 ENTRY_POINT = 'cldfbench.dataset'
 NOOP = -1
 
@@ -34,7 +32,7 @@ def iter_datasets(ep=ENTRY_POINT):
         yield cls()  # yield an initialized `Dataset` object.
 
 
-def get_dataset(spec, ep=ENTRY_POINT, **kw):
+def get_dataset(spec, ep=ENTRY_POINT):
     """
     Get an initialised `Dataset` instance.
 
@@ -48,22 +46,39 @@ def get_dataset(spec, ep=ENTRY_POINT, **kw):
         if ds.id == spec:
             return ds
 
-    # Then check whether `spec` points to a python module and if so, load the first
+    # Then check whether `spec` points to a python module:
     # `Dataset` subclass found in the module:
-    p = pathlib.Path(spec)
-    if p.exists() and p.is_file():
-        with sys_path(p.parent):
-            if p.stem in sys.modules:
-                mod = importlib.reload(sys.modules[p.stem])
+    ds = dataset_from_module(spec)
+    if ds:
+        return ds
+
+
+def get_datasets(spec, ep=ENTRY_POINT, glob=False):
+    if spec == '*':
+        return list(iter_datasets(ep))
+    if glob:
+        return nfilter(dataset_from_module(p) for p in pathlib.Path('.').glob(spec))
+    return nfilter([get_dataset(spec, ep=ep)])
+
+
+def dataset_from_module(path):
+    """
+    load the first `Dataset` subclass found in the module
+
+    :param path:
+    :return:
+    """
+    path = pathlib.Path(path)
+    if path.exists() and path.is_file():
+        with sys_path(path.parent):
+            if path.stem in sys.modules:
+                mod = importlib.reload(sys.modules[path.stem])
             else:
-                mod = importlib.import_module(p.stem)
+                mod = importlib.import_module(path.stem)
 
         for _, obj in inspect.getmembers(mod):
             if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
-                return obj(**kw)
-
-    raise ParserError(termcolor.colored(
-        '\nInvalid dataset spec: <{0}> {1}\n'.format(ep, spec), "red"))
+                return obj()
 
 
 class Dataset(object):

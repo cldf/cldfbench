@@ -57,17 +57,19 @@ def test_run(caplog, tmpds):
 
 
 def test_ls(capsys):
-    _main('ls')
+    _main('ls _')
     out, _ = capsys.readouterr()
     assert 'id ' in out
 
-    _main('ls --modules')
+    _main('ls _ --modules')
     out, _ = capsys.readouterr()
     assert 'id ' not in out
 
 
 def test_download(tmpds):
     _main('download ' + tmpds)
+    with pytest.raises(SystemExit):
+        _main('download abc')
 
 
 def test_makecldf(fixtures_dir, tmpds):

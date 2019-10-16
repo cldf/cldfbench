@@ -28,11 +28,12 @@ def ds(ds_cls, fixtures_dir):
     return res
 
 
-def test_get_dataset_from_path():
-    ds = get_dataset(pathlib.Path(__file__).parent / 'fixtures' / 'module.py')
+def test_get_dataset_from_path(fixtures_dir):
+    ds = get_dataset(fixtures_dir / 'module.py')
     assert ds.id == 'thing'
     assert not ds.cldf_dir.exists()
     assert not ds.etc_dir.exists()
+    assert get_datasets(str(fixtures_dir.relative_to(pathlib.Path.cwd()) / '*.py'), glob=True)
 
 
 def test_get_dataset_from_id(mocker, ds_cls):

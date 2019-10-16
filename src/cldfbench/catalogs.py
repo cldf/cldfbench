@@ -21,8 +21,21 @@ except ImportError:  # pragma: no cover
 __all__ = ['Catalog', 'Glottolog', 'Concepticon', 'CLTS', 'BUILTIN_CATALOGS']
 
 
+class CachingGlottologAPI(GlottologAPI):
+    def __init__(self, p):
+        super().__init__(p)
+        self.__languoids = None
+
+    def languoids(self, **kw):
+        if not kw:
+            if not self.__languoids:
+                self.__languoids = list(super().languoids())
+            return self.__languoids
+        return super().languoids(**kw)
+
+
 class Glottolog(Catalog):
-    __api__ = GlottologAPI
+    __api__ = CachingGlottologAPI
 
 
 class CLTS(Catalog):

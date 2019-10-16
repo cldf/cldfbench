@@ -2,18 +2,21 @@
 Run generic CLDF checks
 """
 import pytest
-from cldfbench.cli_util import get_dataset, add_catalog_spec, add_dataset_spec
+from cldfbench.cli_util import get_datasets, add_catalog_spec, add_dataset_spec, with_dataset
 
 
 def register(parser):
-    add_dataset_spec(parser)
+    add_dataset_spec(parser, multiple=True)
     add_catalog_spec(parser, 'glottolog')
     parser.add_argument('--with-tests', action='store_true', default=False)
 
 
 def run(args):
-    ds = get_dataset(args.dataset, ep=args.entry_point)
+    for ds in get_datasets(args):
+        with_dataset(args, check, dataset=ds)
 
+
+def check(ds, args):
     if args.with_tests:  # pragma: no cover
         testfile = ds.dir / "test.py"
         if testfile.is_file():

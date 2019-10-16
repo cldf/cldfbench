@@ -5,12 +5,11 @@ import inspect
 
 from clldutils.markup import Table
 
-from cldfbench.cli_util import add_entry_point
-from cldfbench import iter_datasets
+from cldfbench.cli_util import add_dataset_spec, get_datasets
 
 
 def register(parser):
-    add_entry_point(parser)
+    add_dataset_spec(parser, multiple=True)
     parser.add_argument(
         '--modules',
         help="List only python modules, suitable as DATASET arguments for other commands.",
@@ -20,7 +19,7 @@ def register(parser):
 
 def run(args):
     t = Table('id', 'dir', 'title')
-    for ds in iter_datasets(ep=args.entry_point):
+    for ds in get_datasets(args):
         if args.modules:
             print(inspect.getfile(ds.__class__))
             continue

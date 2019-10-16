@@ -7,6 +7,9 @@ class Dataset(BaseDataset):
     dir = pathlib.Path(__file__).parent
     id = "{id}"
 
+    def cldf_specs(self):  # A dataset must declare all CLDF sets it creates.
+        return super().cldf_specs()
+
     def cmd_download(self, args):
         """
         Download files to the raw/ directory. You can use helpers methods of `self.raw_dir`, e.g.
@@ -19,8 +22,8 @@ class Dataset(BaseDataset):
         """
         Convert the raw data to a CLDF dataset.
 
-        >>> with self.cldf_writer() as ds:
+        >>> with self.cldf_writer(args) as ds:
         ...     ds.objects[<TABLE>].append(dict(...))
         """
-        with self.cldf_writer(args=args) as ds:
+        with self.cldf_writer(args) as ds:
             pass
