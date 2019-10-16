@@ -70,6 +70,7 @@ def dataset_from_module(path):
     """
     path = pathlib.Path(path)
     if path.exists() and path.is_file():
+        print('still here')
         with sys_path(path.parent):
             if path.stem in sys.modules:
                 mod = importlib.reload(sys.modules[path.stem])
@@ -193,6 +194,13 @@ class Dataset(object):
     def cmd_download(self, args):
         args.log.warning('cmd_{0} not implemented for dataset {1}'.format('download', self.id))
         return NOOP
+
+    def _cmd_readme(self, args):
+        if self.metadata:
+            self.dir.joinpath('README.md').write_text(self.cmd_readme(args), encoding='utf8')
+
+    def cmd_readme(self, args):
+        return self.metadata.markdown() if self.metadata else ''
 
     def _cmd_makecldf(self, args):
         specs = list(self.cldf_specs_dict.values())

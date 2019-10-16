@@ -79,3 +79,8 @@ def with_dataset(args, func, dataset=None):
     args.log.info('running {0} on {1} ...'.format(getattr(func, '__name__', func), dataset.id))
     func(*arg, args)
     args.log.info('... done %s [%.1f secs]' % (dataset.id, time() - s))
+
+
+def with_datasets(args, func):
+    for ds in get_datasets(args):
+        with_dataset(args, func, dataset=ds)

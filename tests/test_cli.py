@@ -33,7 +33,9 @@ def test_new(tmpdir, mocker, glottolog_dir):
     _main('new --out=' + str(tmpdir))
     dsdir = pathlib.Path(str(tmpdir)).joinpath('abc')
     assert dsdir.is_dir()
-    _main('makecldf ' + str(dsdir / 'cldfbench_abc.py') + ' ' + str(glottolog_dir))
+    mod = dsdir / 'cldfbench_abc.py'
+    assert mod.exists()
+    _main('makecldf ' + str(mod) + ' ' + str(glottolog_dir))
 
 
 def test_with_dataset_error(fixtures_dir, capsys):
@@ -56,6 +58,11 @@ def test_info(capsys, fixtures_dir):
 def test_run(caplog, tmpds):
     with pytest.raises(ValueError):
         _main('run ' + tmpds + ' raise')
+
+
+def test_readme(tmpds, tmpdir):
+    _main('readme ' + tmpds)
+    assert pathlib.Path(str(tmpdir)).joinpath('README.md').exists()
 
 
 def test_ls(capsys, tmpds):

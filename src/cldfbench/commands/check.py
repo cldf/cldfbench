@@ -2,7 +2,7 @@
 Run generic CLDF checks
 """
 import pytest
-from cldfbench.cli_util import get_datasets, add_catalog_spec, add_dataset_spec, with_dataset
+from cldfbench.cli_util import add_catalog_spec, add_dataset_spec, with_datasets
 
 
 def register(parser):
@@ -12,8 +12,7 @@ def register(parser):
 
 
 def run(args):
-    for ds in get_datasets(args):
-        with_dataset(args, check, dataset=ds)
+    with_datasets(args, check)
 
 
 def check(ds, args):

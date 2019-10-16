@@ -86,3 +86,22 @@ class Metadata(object):
         elif self.license:
             res['dc:license'] = self.license
         return res
+
+    def markdown(self):
+        lines = ['# {0}\n'.format(self.title or 'Dataset {0}'.format(self.id))]
+        if self.citation:
+            lines.extend([
+                'Cite the source dataset as\n',
+                '> %s\n' % self.citation,
+            ])
+
+        if self.description:
+            lines.append('\n{0}\n'.format(self.description))
+
+        if self.license:
+            lines.append('This dataset is licensed under a %s license\n' % self.license)
+
+        if self.url:
+            lines.append('Available online at %s\n' % self.url)
+
+        return '\n'.join(lines)

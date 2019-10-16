@@ -1,7 +1,7 @@
 """
 Display basic info about a dataset
 """
-from cldfbench.cli_util import with_dataset, add_dataset_spec, get_datasets
+from cldfbench.cli_util import with_datasets, add_dataset_spec
 
 
 def register(parser):
@@ -9,5 +9,4 @@ def register(parser):
 
 
 def run(args):
-    for ds in get_datasets(args):
-        with_dataset(args, lambda ds, _: print(ds), dataset=ds)
+    with_datasets(args, lambda ds, _: print(ds))

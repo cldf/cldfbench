@@ -1,4 +1,7 @@
 {
   "title": "The Title",
+  "citation": "Author Year",
+  "description": "Some text - possibly markdown",
+  "url":  "http://example.org",
   "license": "CC-BY-4.0"
 }

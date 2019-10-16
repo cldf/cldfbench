@@ -20,16 +20,13 @@ setup(
         'console_scripts': [
             'cldfbench=cldfbench.__main__:main',
         ],
-        'cldfbench.scaffold': [
-            'cldfbench=cldfbench.scaffold:Template'
-        ],
     },
     platforms='any',
     python_requires='>=3.5',
     install_requires=[
         'csvw>=1.5.6',
-        'cldfcatalog>=1.0',
-        'clldutils>=3.1.1',
+        'cldfcatalog>=1.1',
+        'clldutils>=3.1.2',
         'pycldf>=1.8.1',
         'xlrd',
         'openpyxl',
@@ -45,6 +42,7 @@ setup(
             'pytest-cov',
             'coverage>=4.2',
             'pyglottolog',
+            'pyconcepticon',
         ],
     },
     classifiers=[

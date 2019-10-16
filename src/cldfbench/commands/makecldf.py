@@ -10,4 +10,4 @@ def register(parser):
 
 
 def run(args):
-    with_dataset(args, 'makecldf')  # pragma: no cover
+    with_dataset(args, 'makecldf')

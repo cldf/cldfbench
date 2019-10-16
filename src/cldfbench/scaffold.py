@@ -21,6 +21,7 @@ from cldfbench.metadata import Metadata
 
 
 def iter_scaffolds():
+    yield Template
     for ep in pkg_resources.iter_entry_points('cldfbench.scaffold'):
         yield ep.load()
 
