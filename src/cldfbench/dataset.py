@@ -194,6 +194,16 @@ class Dataset(object):
         self._not_implemented('download')
         return NOOP
 
+    def _cmd_makecldf(self, args):
+        specs = list(self.cldf_specs_dict.values())
+        if len(specs) == 1:
+            # There's only one CLDF spec! We instantiate the writer now and inject it into `args`:
+            with self.cldf_writer(args, cldf_spec=specs[0]) as writer:
+                args.writer = writer
+                self.cmd_makecldf(args)
+        else:
+            self.cmd_makecldf(args)
+
     def cmd_makecldf(self, args):
         """
         :param args: An `argparse.Namespace` including attributes:

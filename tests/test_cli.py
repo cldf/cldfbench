@@ -26,12 +26,14 @@ def test_help(capsys):
     assert 'usage' in out
 
 
-def test_new(tmpdir, mocker):
+def test_new(tmpdir, mocker, glottolog_dir):
     with pytest.raises(SystemExit):
         _main('new --template=xyz')
     mocker.patch('cldfbench.metadata.input', mocker.Mock(return_value='abc'))
     _main('new --out=' + str(tmpdir))
-    assert pathlib.Path(str(tmpdir)).joinpath('abc').is_dir()
+    dsdir = pathlib.Path(str(tmpdir)).joinpath('abc')
+    assert dsdir.is_dir()
+    _main('makecldf ' + str(dsdir / 'cldfbench_abc.py') + ' ' + str(glottolog_dir))
 
 
 def test_with_dataset_error(fixtures_dir, capsys):

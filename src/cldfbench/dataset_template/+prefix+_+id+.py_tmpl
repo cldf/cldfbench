@@ -22,8 +22,5 @@ class Dataset(BaseDataset):
         """
         Convert the raw data to a CLDF dataset.
 
-        >>> with self.cldf_writer(args) as ds:
-        ...     ds.objects[<TABLE>].append(dict(...))
+        >>> args.writer.objects['LanguageTable'].append(...)
         """
-        with self.cldf_writer(args) as ds:
-            pass
