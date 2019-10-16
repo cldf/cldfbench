@@ -63,14 +63,13 @@ def get_datasets(spec, ep=ENTRY_POINT, glob=False):
 
 def dataset_from_module(path):
     """
-    load the first `Dataset` subclass found in the module
+    load the first `Dataset` subclass found in the module without any subclasses.
 
     :param path:
     :return:
     """
     path = pathlib.Path(path)
     if path.exists() and path.is_file():
-        print('still here')
         with sys_path(path.parent):
             if path.stem in sys.modules:
                 mod = importlib.reload(sys.modules[path.stem])
@@ -78,7 +77,7 @@ def dataset_from_module(path):
                 mod = importlib.import_module(path.stem)
 
         for _, obj in inspect.getmembers(mod):
-            if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
+            if inspect.isclass(obj) and issubclass(obj, Dataset) and not obj.__subclasses__():
                 return obj()
 
 
