@@ -58,12 +58,15 @@ def test_run(caplog, tmpds):
         _main('run ' + tmpds + ' raise')
 
 
-def test_ls(capsys):
-    _main('ls _')
+def test_ls(capsys, tmpds):
+    with pytest.raises(SystemExit):
+        _main('ls _ --entry-point abc')
+
+    _main('ls ' + tmpds)
     out, _ = capsys.readouterr()
     assert 'id ' in out
 
-    _main('ls _ --modules')
+    _main('ls ' + tmpds + ' --modules')
     out, _ = capsys.readouterr()
     assert 'id ' not in out
 
