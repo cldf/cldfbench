@@ -58,6 +58,10 @@ class CLDFSpec(object):
         for p in self.dir.iterdir():
             if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
                 p.unlink()
+        gitattributes = self.dir / '.gitattributes'
+        if not gitattributes.exists():
+            with gitattributes.open('wt') as fp:
+                fp.write('*.csv text eol=crlf')
 
     def copy_metadata(self):
         shutil.copy(str(self.default_metadata_path), str(self.metadata_path))

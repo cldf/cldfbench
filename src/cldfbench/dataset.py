@@ -204,6 +204,11 @@ class Dataset(object):
         else:
             self.cmd_makecldf(args)
 
+        if self.metadata and self.metadata.known_license:
+            legalcode = self.metadata.known_license.legalcode
+            if legalcode:
+                (self.dir / 'LICENSE').write_text(legalcode, encoding='utf8')
+
     def cmd_makecldf(self, args):
         """
         :param args: An `argparse.Namespace` including attributes:
