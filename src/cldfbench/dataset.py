@@ -23,8 +23,15 @@ NOOP = -1
 
 
 def iter_datasets(ep=ENTRY_POINT):
+    """
+    Yields `Dataset` instances registered for the specified entry point.
+
+    :param ep: Name of the entry point.
+    :return: Generator.
+    """
     for ep in pkg_resources.iter_entry_points(ep):
-        yield ep.load()
+        cls = ep.load()
+        yield cls()  # yield an initialized `Dataset` object.
 
 
 def get_dataset(spec, ep=ENTRY_POINT, **kw):
@@ -37,9 +44,9 @@ def get_dataset(spec, ep=ENTRY_POINT, **kw):
     """
     # First assume `spec` is the ID of an installed dataset:
     # iterate over registered entry points
-    for cls in iter_datasets(ep=ep):
-        if cls.id == spec:
-            return cls(**kw)
+    for ds in iter_datasets(ep=ep):
+        if ds.id == spec:
+            return ds
 
     # Then check whether `spec` points to a python module and if so, load the first
     # `Dataset` subclass found in the module:
@@ -88,6 +95,29 @@ class Dataset(object):
     def __str__(self):
         return '{0.__class__.__name__} "{0.id}" at {1}'.format(self, self.dir.resolve())
 
+    def cldf_specs(self):
+        """
+        A `Dataset` must declare all CLDF datasets that are derived from it.
+
+        :return: A single `CLDFSpec` instance, or a `dict`, mapping names to `CLDFSpec` \
+        instances, where the name will be used by `cldf_reader`/`cldf_writer` to look up \
+        the spec.
+        """
+        return CLDFSpec(dir=self.cldf_dir)
+
+    @property
+    def cldf_specs_dict(self):
+        """
+        Turn cldf_specs into a `dict` for simpler lookup.
+
+        :return: `dict` mapping lookup keys to `CLDFSpec` instances.
+        """
+        specs = self.cldf_specs()
+        if isinstance(specs, CLDFSpec):
+            return {None: specs}
+        assert isinstance(specs, dict)
+        return specs
+
     @lazyproperty
     def cldf_dir(self):
         return self.dir / 'cldf'
@@ -100,34 +130,29 @@ class Dataset(object):
     def etc_dir(self):
         return self.dir / 'etc'
 
-    @property
-    def default_cldf_spec(self):
-        """
-        For the typical case of a `Dataset` being used to write one CLDF dataset, this property
-        can be used to "synchronise" `cldf_writer` and `cldf_reader`, since both these methods
-        will use `default_cldf_spec` to determine the location of the CLDF metadata file.
-
-        :return: `CLDFSpec` instance.
-        """
-        return CLDFSpec(dir=self.cldf_dir)
-
-    def cldf_writer(self, args, cldf_spec=None):
+    def cldf_writer(self, args, cldf_spec=None, clean=True):
         """
         :param args:
-        :param cldf_spec:
+        :param cldf_spec: Key of the relevant `CLDFSpec` in `Dataset.cldf_specs`
+        :param clean: `bool` flag signaling whether to clean the CLDF dir before writing. \
+        Note that `False` must be passed for subsequent calls to `cldf_writer` in case the \
+        spec re-uses a directory.
         :return: a `self.cldf_writer_cls` instance, for write-access to CLDF data. \
         This method should be used in a with-statement, and will then return a `CLDFWriter` with \
         an empty working directory.
         """
-        return self.cldf_writer_cls(
-            cldf_spec=cldf_spec or self.default_cldf_spec, args=args, dataset=self)
+        if not isinstance(cldf_spec, CLDFSpec):
+            cldf_spec = self.cldf_specs_dict[cldf_spec]
+        return self.cldf_writer_cls(cldf_spec=cldf_spec, args=args, dataset=self, clean=clean)
 
     def cldf_reader(self, cldf_spec=None):
         """
         :param cldf_spec:
         :return: a `pycldf.Dataset` instance, for read-access to the CLDF data.
         """
-        return (cldf_spec or self.default_cldf_spec).get_dataset()
+        if not isinstance(cldf_spec, CLDFSpec):
+            cldf_spec = self.cldf_specs_dict[cldf_spec]
+        return cldf_spec.get_dataset()
 
     @lazyproperty
     def repo(self):

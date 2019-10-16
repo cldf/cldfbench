@@ -7,18 +7,21 @@ from pycldf import Wordlist, Dataset
 from cldfbench.cldf import *
 
 
-def test_cldf_spec_invalid_module():
+def test_cldf_spec_invalid():
+    with pytest.raises(TypeError):
+        _ = CLDFSpec()
+
     with pytest.raises(ValueError):
-        _ = CLDFSpec(module='invalid')
+        _ = CLDFSpec(dir='.', module='invalid')
 
 
 def test_cldf_spec(tmpdir):
     md = pathlib.Path(str(tmpdir)) / 'md.json'
     md.write_text('abc', encoding='utf8')
     with pytest.raises(ValueError):
-        _ = CLDFSpec(module=Wordlist, default_metadata_path=md)
+        _ = CLDFSpec(module=Wordlist, default_metadata_path=md, dir=str(tmpdir))
     md.write_text('{}', encoding='utf8')
-    spec = CLDFSpec(module=Wordlist, default_metadata_path=md)
+    spec = CLDFSpec(module=Wordlist, default_metadata_path=md, dir=str(tmpdir))
     assert issubclass(spec.cls, Dataset)
 
 

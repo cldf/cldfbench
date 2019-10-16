@@ -22,9 +22,8 @@ def run(args):
     t = Table('id', 'dir', 'title')
     for ds in iter_datasets(ep=args.entry_point):
         if args.modules:
-            print(inspect.getfile(ds))
+            print(inspect.getfile(ds.__class__))
             continue
-        ds = ds()
         t.append((ds.id, ds.dir, getattr(ds.metadata, 'title', '')))
     if not args.modules:
         print(t.render(tablefmt='simple'))
