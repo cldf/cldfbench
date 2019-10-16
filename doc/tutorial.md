@@ -66,37 +66,42 @@ cldfbench new -h
    ```
 
 3. Now we want to convert WALS' quirky `tab` format to nice CLDF. We do so by
-   implementing the `cmd_makecldf` method:
+   implementing the `cldf_specs` method, to specify that we want to create a `StructureDataset`:
+   ```python
+   def cldf_specs(self):
+       from cldfbench import CLDFSpec
+       return CLDFSpec(dir=self.cldf_dir, module='StructureDataset') 
+   ```
+   and implementing the `cmd_makecldf` method:
    ```python
    def cmd_makecldf(self, args):
-       with self.cldf_writer(cldf_spec=CLDFSpec(module='StructureDataset')) as ds:
-           for row in self.raw_dir.read_csv(
-                   '1A.tsv',
-                   dicts=True, 
-                   dialect=Dialect(
-                       skipRows=5,  # Ignore the citation info on top
-                       skipBlankRows=True,
-                       delimiter='\t',
-                   )
-           ):
-               ds.objects['ValueTable'].append({
-                   'ID': row['wals code'],
-                   'Language_ID': row['wals code'],
-                   'Parameter_ID': '1A',
-                   'Value': row['description'],
-               })
+       from csvw.dsv_dialects import Dialect
+       for row in self.raw_dir.read_csv(
+           '1A.tsv',
+           dicts=True, 
+           dialect=Dialect(
+               skipRows=5,  # Ignore the citation info on top
+               skipBlankRows=True,
+               delimiter='\t',
+           )
+       ):
+           args.writer.objects['ValueTable'].append({
+               'ID': row['wals code'],
+               'Language_ID': row['wals code'],
+               'Parameter_ID': '1A',
+               'Value': row['description'],
+           })
    ```
    Let's break this down:
-   - `with self.cldf_writer(...) as ds:` initializes a `cldfbench.cldf.CLDFWriter`
-     (and implicitly a `pycldf.Dataset`), making sure the CLDF data will be written
-     to disk after leaving the `ẁith` context.
-   - The `cldfbench.cldf.CLDFSpec` instructs the writer to use the `StructureDataset` module.
    - Then we iterate over the rows of the downloaded data. Again, `cldfbench`
      provides convenient access to a `csvw.dsv.reader`, which understands multiple
      CSV dialects. We specify a dialect that can cope with WALS' format, ignoring
      the citation info at the top, and splitting columns on `\t`.
    - For each row in the input data, we append a row to the `StructureDataset`'s
      `ValueTable`.
+   - Because we only create a single CLDF dataset here, we do not need to call
+     `with self.cldf_writer(...) as ds:` explicitly. Instead, an initialized
+     `cldfbench.cldf.CLDFWriter` instance is available as `args.writer`.
 
    Again, we can run the command from the command line:
    ```bash

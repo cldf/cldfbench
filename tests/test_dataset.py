@@ -59,4 +59,4 @@ def test_cldf(ds, mocker):
     assert ds.cldf_dir.joinpath('Generic-metadata.json').exists()
     assert ds.cldf_dir.read_csv('values.csv', dicts=True)[0]['Value'] == '1|2'
     assert ds.cldf_reader().validate()
-    ds.cmd_makecldf(None)
+    ds.cmd_makecldf(mocker.Mock())

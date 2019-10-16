@@ -191,7 +191,7 @@ class Dataset(object):
             'Raw data downloaded {0}'.format(datetime.utcnow().isoformat()), encoding='utf8')
 
     def cmd_download(self, args):
-        self._not_implemented('download')
+        args.log.warning('cmd_{0} not implemented for dataset {1}'.format('download', self.id))
         return NOOP
 
     def _cmd_makecldf(self, args):
@@ -209,9 +209,5 @@ class Dataset(object):
         :param args: An `argparse.Namespace` including attributes:
         - `writer`: `CLDFWriter` instance
         """
-        self._not_implemented('makecldf')
+        args.log.warning('cmd_{0} not implemented for dataset {1}'.format('makecldf', self.id))
         return NOOP
-
-    def _not_implemented(self, method):
-        log = logging.getLogger(cldfbench.__name__)
-        log.warning('cmd_{0} not implemented for dataset {1}'.format(method, self.id))
