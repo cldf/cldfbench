@@ -2,7 +2,6 @@ import sys
 import inspect
 import pathlib
 import pkg_resources
-import logging
 import importlib
 from datetime import datetime
 
@@ -10,7 +9,6 @@ from clldutils.path import sys_path
 from clldutils.misc import lazyproperty, nfilter
 from cldfcatalog import Repository
 
-import cldfbench
 from cldfbench.cldf import CLDFWriter, CLDFSpec
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata

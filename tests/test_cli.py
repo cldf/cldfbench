@@ -89,6 +89,7 @@ def test_makecldf(fixtures_dir, tmpds):
         _main('makecldf ' + tmpds + ' ' + str(fixtures_dir))
 
 
-def test_check(tmpds, glottolog_dir):
+def test_workflow(tmpds, glottolog_dir):
     _main('makecldf ' + tmpds + ' ' + str(glottolog_dir))
     _main('check ' + tmpds + ' ' + str(glottolog_dir))
+    _main('geojson ' + tmpds)

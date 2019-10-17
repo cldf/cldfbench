@@ -13,8 +13,9 @@ class Thing(Dataset):
     def cmd_makecldf(self, args):  # pragma: no cover
         with self.cldf_writer(args) as w:
             w.cldf.add_component('ValueTable')
-            w.cldf.add_component('LanguageTable')
-            w.objects['LanguageTable'].append({'ID': 'l1', 'Glottocode': None})
+            w.cldf.add_component('LanguageTable', 'latitude', 'longitude')
+            w.objects['LanguageTable'].append(
+                {'ID': 'l1', 'Glottocode': None, 'Latitude': 2, 'Longitude': 2})
             w.objects['LanguageTable'].append({'ID': 'l2', 'Glottocode': 'xxxx9999'})
             w.objects['LanguageTable'].append({'ID': 'l3', 'Glottocode': 'book1111'})
             w.objects['ValueTable'].append(
