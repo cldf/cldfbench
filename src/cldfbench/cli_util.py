@@ -1,11 +1,35 @@
 from time import time
+import configparser
+import collections
+import pathlib
 
+import appdirs
 from clldutils.clilib import ParserError
 import termcolor
 
+import cldfbench
 from cldfbench import ENTRY_POINT
 from cldfbench import get_dataset as _get
 from cldfbench import get_datasets as _gets
+
+
+class Config(configparser.ConfigParser):
+    @staticmethod
+    def fname():
+        return pathlib.Path(appdirs.user_config_dir(cldfbench.__name__)) / 'config.ini'
+
+    @classmethod
+    def from_file(cls):
+        cfg = cls()
+        cfg.read(str(cls.fname()))
+        if 'catalogs' not in cfg.sections():
+            cfg['catalogs'] = collections.OrderedDict()
+        return cfg
+
+    def to_file(self):
+        self.fname().parent.mkdir(parents=True, exist_ok=True)
+        with self.fname().open('w', encoding='utf8') as fp:
+            self.write(fp)
 
 
 class DatasetNotFoundException(Exception):
@@ -56,15 +80,17 @@ def get_datasets(args):
         '\nInvalid dataset spec: <{0}> {1}\n'.format(args.entry_point, args.dataset), "red"))
 
 
-def add_catalog_spec(parser, name):
+def add_catalog_spec(parser, name, with_version=True):
     parser.add_argument(
-        name,
+        '--' + name,
         metavar=name.upper(),
-        help='Path to repository clone of {0} data'.format(name.capitalize()))
-    parser.add_argument(
-        '--{0}-version'.format(name),
-        help='Version of {0} data to checkout'.format(name.capitalize()),
+        help='Path to repository clone of {0} data'.format(name.capitalize()),
         default=None)
+    if with_version:
+        parser.add_argument(
+            '--{0}-version'.format(name),
+            help='Version of {0} data to checkout'.format(name.capitalize()),
+            default=None)
 
 
 def with_dataset(args, func, dataset=None):

@@ -32,6 +32,7 @@ setup(
         'openpyxl',
         'termcolor',
         'requests',
+        'appdirs',
     ],
     extras_require={
         'dev': ['flake8', 'wheel', 'twine'],

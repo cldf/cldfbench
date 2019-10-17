@@ -56,10 +56,12 @@ class CachingGlottologAPI(GlottologAPI):
 
 
 class Glottolog(Catalog):
+    """glottolog/glottolog"""
     __api__ = CachingGlottologAPI
 
 
 class CLTS(Catalog):
+    """cldf/clts"""
     __api__ = CLTSAPI
 
 
@@ -70,6 +72,7 @@ class CachingConcepticonAPI(ConcepticonAPI):
 
 
 class Concepticon(Catalog):
+    """concepticon/concepticon-data"""
     __api__ = CachingConcepticonAPI
 
 
