@@ -15,15 +15,74 @@ In particular, it supports a workflow where
 - "raw" source data is downloaded to a `raw` subdirectory,
 - and subsequently converted to a CLDF dataset in a `cldf` subdirectory, with the help of
   - configuration data in a `etc` directory
-  - custom Python code (a subclass of `cldfbench.Dataset` which implements the workflow actions)
+  - custom Python code (a subclass of [`cldfbench.Dataset`](src/cldfbench/dataset.py) which implements the workflow actions)
 
 This workflow is supported via
-- a commandline interface `cldfbench` which calls the workflow actions via subcommands,
+- a commandline interface `cldfbench` which calls the workflow actions via [subcommands](src/cldfbench/commands),
 - a `cldfbench.Dataset` base class, which must be overwritten in a custom module
   to hook custom code into the workflow.
 
 
-## Creating a skeleton for a new dataset directory
+## Install
+
+`cldfbench` can be installed via `pip` - preferably in a 
+[virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - running
+```bash
+pip install cldfbench
+```
+
+
+## The command line interface `cldfbench`
+
+Installing the python package will also install a command `cldfbench` available on
+the command line:
+```bash
+$ cldfbench -h
+usage: cldfbench [-h] [--log-level LOG_LEVEL] COMMAND ...
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log-level LOG_LEVEL
+                        log level [ERROR|WARN|INFO|DEBUG] (default: 20)
+
+available commands:
+  Run "COMAMND -h" to get help for a specific command.
+
+  COMMAND
+    check               Run generic CLDF checks
+    ...
+```
+
+As shown above, run `cldfbench -h` to get help, and `cldfbench COMMAND -h` to get
+help on individual subcommands, e.g. `cldfbench new -h` to read about the usage
+of the `new` subcommand.
+
+
+### Dataset discovery
+
+Most `cldfbench` commands operate on an existing dataset (unlike `new`, which
+creates a new one). Datasets can be discovered in two ways:
+
+1. Via the python module (i.e. the `*.py` file, containing the `Dataset` subclass).
+   To use this mode of discovery, pass the path to the python module whenever
+   as `DATASET` argument, when required by a command.
+
+2. Via [entry point](https://packaging.python.org/specifications/entry-points/) and
+   dataset ID. To use this mode, specify the name of the entry point as value of
+   the `--entry-point` option (or use the default name `cldfbench.dataset`) and
+   the `Dataset.id` as `DATASET` argument.
+
+Discovery via entry point is particularly useful for commands that can operate
+on multiple datasets. To select **all** datasets advertising a given entry point,
+pass `"_"` (i.e. an underscore) as `DATASET` argument.
+
+
+## Workflow
+
+For a full example of the `cldfbench` curation workflow, see [the tutorial](doc/tutorial.md).
+
+
+### Creating a skeleton for a new dataset directory
 
 A directory containing stub entries for a dataset can be created running
 
@@ -48,12 +107,8 @@ This will create the following layout (where `<ID>` stands for the chosen datase
 └── .travis.yml        # Integrate the validation with Travis-CI
 ```
 
-## Dataset discovery
 
-TODO: by entry point, by module
-
-
-## Implementing CLDF creation
+### Implementing CLDF creation
 
 `cldfbench` provides tools to make CLDF creation simple. Still, each dataset is
 different, and so each dataset will have to provide its own custom code to do so.
@@ -83,17 +138,12 @@ accessible, in particular Glottolog. See the section on [Catalogs](#catalogs) fo
 a description of how this is supported by `cldfbench`.
 
 
-## Commands
-
-TODO: custom commands
-
-
-## Catalogs
+### Catalogs
 
 TODO: Catalog objects, Catalogs in cli,
 
 
-## Curating a dataset on GitHub
+### Curating a dataset on GitHub
 
 One of the design goals of CLDF was to specify a data format that plays well with
 version control. Thus, it's natural - and actually recommended - to curate a CLDF
@@ -109,7 +159,7 @@ The directory layout supported by `cldfbench` caters to this use case in several
   of the data.
 
 
-## Archiving a dataset with Zenodo
+### Archiving a dataset with Zenodo
 
 Curating a dataset on GitHub also provides a simple way to archiving and publishing
 released versions of the data. You can hook up your repository with [Zenodo](https://zenodo.org) (following [this guide](https://guides.github.com/activities/citable-code/)). Then, Zenodo will pick up any released package, assign a DOI to it, archive it and
@@ -123,3 +173,18 @@ Some notes:
 
 Thus, with a setup as described here, you can make sure you create [FAIR data](https://en.wikipedia.org/wiki/FAIR_data).
 
+
+## Extending `cldfbench`
+
+### Custom dataset templates
+
+A python package can provide alternative dataset templates to be run with `cldfbench new`.
+
+TODO
+
+
+### Commands
+
+A python package can provide additional subcommands to be run from `cldfbench`.
+
+TODO
