@@ -5,11 +5,6 @@ Like programs such as git, this cli splits its functionality into sub-commands
 (see e.g. https://docs.python.org/2/library/argparse.html#sub-commands).
 The rationale behind this is that while a lot of different tasks may be
 triggered using this cli, most of them require common configuration.
-
-The basic invocation looks like
-
-    cldfbench [OPTIONS] <command> [args]
-
 """
 import sys
 import contextlib
@@ -27,6 +22,8 @@ import cldfbench.commands
 
 def main(args=None, catch_all=False, parsed_args=None):
     parser, subparsers = get_parser_and_subparsers(cldfbench.__name__)
+
+    # We add a "hidden" option to turn-off config file reading in tests:
     parser.add_argument('--no-config', default=False, action='store_true', help=argparse.SUPPRESS)
 
     # Discover available commands:
@@ -40,9 +37,13 @@ def main(args=None, catch_all=False, parsed_args=None):
 
     with Logging(args.log, level=args.log_level):
         with contextlib.ExitStack() as stack:
+            # args.no_catalogs is set by the `config` command, because this command specifies
+            # catalog options **optionally**, and prompts for user input only in its `run` function.
             if not getattr(args, "no_catalogs", False):
                 cfg = Config.from_file()
                 for cls in BUILTIN_CATALOGS:
+                    # Now we loop over known catalogs, see whether they are used by the command,
+                    # and if so, "enter" the catalog.
                     name, from_cfg = cls.cli_name(), False
                     if hasattr(args, name):
                         # If no path was passed on the command line, we look up the config:

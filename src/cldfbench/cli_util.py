@@ -14,6 +14,10 @@ from cldfbench import get_datasets as _gets
 
 
 class Config(configparser.ConfigParser):
+    """
+    A config file for the cli.
+    """
+    # Note: `fname` must not be defined at import, because we need to patch `appdirs` for tests!
     @staticmethod
     def fname():
         return pathlib.Path(appdirs.user_config_dir(cldfbench.__name__)) / 'config.ini'

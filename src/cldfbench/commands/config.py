@@ -20,7 +20,10 @@ def run(args):
         if not val:
             val = input('Path to clone of https://github.com/{0}: '.format(cat.__doc__))
         val = pathlib.Path(val).resolve()
-        cat(val)
+        try:
+            cat(val)
+        except ValueError as e:
+            args.log.warning(str(e))
         cfg['catalogs'][cat.cli_name()] = str(val)
 
     cfg.to_file()
