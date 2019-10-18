@@ -49,6 +49,10 @@ class DataDir(type(pathlib.Path())):
     def read_csv(self, fname, **kw):
         return list(dsv.reader(self._path(fname), **kw))
 
+    def write_csv(self, fname, rows, **kw):
+        with dsv.UnicodeWriter(self._path(fname), **kw) as writer:
+            writer.writerows(rows)
+
     def read_xml(self, fname, wrap=True):
         xml = xmlchars(self.read(fname))
         if wrap:

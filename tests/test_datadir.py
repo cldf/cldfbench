@@ -26,6 +26,12 @@ def test_datadir(datadir):
     assert len(datadir.read_bib()) == 1
 
 
+def test_datadir_csv(datadir):
+    rows = [['a', 'b'], ['c', 'd']]
+    datadir.write_csv('test.csv', rows)
+    assert datadir.read_csv('test.csv') == rows
+
+
 def test_datadir_xml(datadir):
     assert datadir.read_xml('test.xml').find('b').text == 'b'
 
