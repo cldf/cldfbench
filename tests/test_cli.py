@@ -1,4 +1,4 @@
-import os
+import logging
 import pathlib
 import shutil
 import shlex
@@ -84,6 +84,16 @@ def test_download(tmpds):
         _main('download abc')
 
 
+def test_catinfo(capsys, glottolog_dir):
+    _main('catinfo --glottolog {0}'.format(glottolog_dir))
+    out, _ = capsys.readouterr()
+    assert 'versions' in out
+
+
+def test_catupdate(glottolog_dir):
+    _main('catupdate --glottolog {0}'.format(glottolog_dir))
+
+
 def test_invalid_catalog(fixtures_dir, tmpds):
     with pytest.raises(SystemExit):
         _main('makecldf ' + tmpds + ' --glottolog ' + str(fixtures_dir))
@@ -100,6 +110,7 @@ def test_catalog_from_config(glottolog_dir, tmpds, mocker, tmpdir, fixtures_dir)
         'cldfbench.commands.config.input',
         mocker.Mock(return_value=str(glottolog_dir)))
     cli.main(['config'])
+    cli.main(['catinfo'])
     cli.main(['makecldf', tmpds])
 
     # Second case: get an invalid path from config:

@@ -22,7 +22,7 @@ def run(args):
         val = pathlib.Path(val).resolve()
         try:
             cat(val)
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             args.log.warning(str(e))
         cfg['catalogs'][cat.cli_name()] = str(val)
 

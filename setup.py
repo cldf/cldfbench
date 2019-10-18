@@ -25,7 +25,7 @@ setup(
     python_requires='>=3.5',
     install_requires=[
         'csvw>=1.5.6',
-        'cldfcatalog>=1.1',
+        'cldfcatalog>=1.2',
         'clldutils>=3.1.2',
         'pycldf>=1.8.1',
         'xlrd',

@@ -2,6 +2,14 @@ import sys
 import subprocess
 
 
+def iter_aligned(pairs, prefix=''):
+    pairs = list(pairs)  # make sure we can iterate twice over `pairs`
+    if pairs:
+        maxlabel = max(len(p[0]) for p in pairs)
+        for p in pairs:
+            yield '{0}{1} {2}'.format(prefix, p[0].ljust(maxlabel), p[1] or '')
+
+
 def iter_requirements():
     """
     :return: generator of lines in pip's requirements.txt format, specifying packages which are \

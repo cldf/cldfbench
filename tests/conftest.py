@@ -13,7 +13,7 @@ def fixtures_dir():
 
 @pytest.fixture
 def glottolog_dir(tmpdir):
-    repo = get_test_repo(str(tmpdir))
+    repo = get_test_repo(str(tmpdir), tags=['v1', 'v2'])
     d = pathlib.Path(repo.working_dir)
     for dd in ['languoids', 'references']:
         shutil.copytree(str(pathlib.Path(__file__).parent / 'glottolog' / dd), str(d / dd))
