@@ -1,6 +1,7 @@
 import sys
 import inspect
 import pathlib
+import logging
 import pkg_resources
 import importlib
 from datetime import datetime
@@ -26,8 +27,11 @@ def iter_datasets(ep=ENTRY_POINT):
     :return: Generator.
     """
     for ep in pkg_resources.iter_entry_points(ep):
-        cls = ep.load()
-        yield cls()  # yield an initialized `Dataset` object.
+        try:
+            cls = ep.load()
+            yield cls()  # yield an initialized `Dataset` object.
+        except ImportError as e:  # pragma: no cover
+            logging.getLogger('cldfbench').warning(str(e))
 
 
 def get_dataset(spec, ep=ENTRY_POINT):
