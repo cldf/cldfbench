@@ -14,6 +14,12 @@ from cldfbench.catalogs import BUILTIN_CATALOGS
 def register(parser):
     for cat in BUILTIN_CATALOGS:
         add_catalog_spec(parser, cat.cli_name(), with_version=False)
+    parser.add_argument(
+        '-q', '--quiet',
+        help="run quietly, don't prompt for input",
+        action='store_true',
+        default=False,
+    )
     parser.set_defaults(no_catalogs=True)
 
 
@@ -24,7 +30,9 @@ def run(args):
             if not val:
                 if cat.default_location().exists():  # pragma: no cover
                     val = cat(cat.default_location()).dir
-                elif confirm(
+                    args.log.info('CLone of {0} exists at {1} - skipping'.format(
+                        cat.__github__, cat.default_location()))
+                elif args.quiet or confirm(
                         'clone {0}?'.format(cat.__github__), default=False):  # pragma: no cover
                     url = 'https://github.com/{0}.git'.format(cat.__github__)
                     args.log.info('Cloning {0} into {1} ...'.format(url, cat.default_location()))
