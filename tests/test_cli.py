@@ -1,4 +1,3 @@
-import logging
 import pathlib
 import shutil
 import shlex
@@ -100,23 +99,19 @@ def test_invalid_catalog(fixtures_dir, tmpds):
 
 
 def test_catalog_from_config(glottolog_dir, tmpds, mocker, tmpdir, fixtures_dir):
-    from cldfbench.cli_util import Config
+    from cldfcatalog import Config
 
     # First case: get a "good" value from comfig:
     mocker.patch(
-        'cldfbench.cli_util.appdirs',
+        'cldfcatalog.config.appdirs',
         mocker.Mock(user_config_dir=mocker.Mock(return_value=str(tmpdir))))
-    mocker.patch(
-        'cldfbench.commands.config.input',
-        mocker.Mock(return_value=str(glottolog_dir)))
-    cli.main(['config'])
+    mocker.patch('cldfbench.commands.catconfig.confirm', mocker.Mock(return_value=False))
+    cli.main(['catconfig', '--glottolog', str(glottolog_dir)])
     cli.main(['catinfo'])
-    cli.main(['makecldf', tmpds])
 
     # Second case: get an invalid path from config:
-    cfg = Config.from_file()
-    cfg['catalogs']['glottolog'] = str(fixtures_dir)
-    cfg.to_file()
+    with Config.from_file() as cfg:
+        cfg.add_clone('glottolog', fixtures_dir)
     with pytest.raises(SystemExit):
         cli.main(['makecldf', tmpds])
 

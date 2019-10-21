@@ -140,7 +140,12 @@ a description of how this is supported by `cldfbench`.
 
 ### Catalogs
 
-TODO: Catalog objects, Catalogs in cli,
+Linking data to reference catalogs is a major goal of CLDF dataset, thus `cldfbench`
+provides tools to make catalog access and maintenance easier. Catalog data must be
+accessible in local clones of the data repository. `cldfbench` provides commands
+- `catconfig` to create the clones and make them known through a configuration file,
+- `catinfo` to get an overview of the installed catalogs and their versions,
+- `catupdate` to update local clones from the upstream repositories.
 
 
 ### Curating a dataset on GitHub

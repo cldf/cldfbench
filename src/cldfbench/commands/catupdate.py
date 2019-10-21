@@ -1,7 +1,9 @@
 """
 Update local clones of catalog repositories.
 """
-from cldfbench.cli_util import add_catalog_spec, Config
+from cldfcatalog import Config
+
+from cldfbench.cli_util import add_catalog_spec
 from cldfbench.catalogs import BUILTIN_CATALOGS
 
 
@@ -17,7 +19,12 @@ def run(args):
         name = cat.cli_name()
         path = getattr(args, name)
         if (not path) and (not args.no_config):  # pragma: no cover
-            path = cfg['catalogs'].get(name)
+            try:
+                path = cfg.get_clone(name)
+            except KeyError as e:
+                args.log.warning(str(e))
+                continue
+
         if path:
             try:
                 cat = cat(path)

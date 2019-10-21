@@ -1,39 +1,11 @@
 from time import time
-import configparser
-import collections
-import pathlib
 
-import appdirs
 from clldutils.clilib import ParserError
 import termcolor
 
-import cldfbench
 from cldfbench import ENTRY_POINT
 from cldfbench import get_dataset as _get
 from cldfbench import get_datasets as _gets
-
-
-class Config(configparser.ConfigParser):
-    """
-    A config file for the cli.
-    """
-    # Note: `fname` must not be defined at import, because we need to patch `appdirs` for tests!
-    @staticmethod
-    def fname():
-        return pathlib.Path(appdirs.user_config_dir(cldfbench.__name__)) / 'config.ini'
-
-    @classmethod
-    def from_file(cls):
-        cfg = cls()
-        cfg.read(str(cls.fname()))
-        if 'catalogs' not in cfg.sections():
-            cfg['catalogs'] = collections.OrderedDict()
-        return cfg
-
-    def to_file(self):
-        self.fname().parent.mkdir(parents=True, exist_ok=True)
-        with self.fname().open('w', encoding='utf8') as fp:
-            self.write(fp)
 
 
 class DatasetNotFoundException(Exception):

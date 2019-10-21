@@ -66,19 +66,19 @@ __all__ = ['Catalog', 'Glottolog', 'Concepticon', 'CLTS', 'BUILTIN_CATALOGS']
 
 
 class Glottolog(Catalog):
-    """glottolog/glottolog"""
+    __github__ = "glottolog/glottolog"
     __api__ = CachingGlottologAPI
     __api_pkg__ = pyglottolog
 
 
 class CLTS(Catalog):
-    """cldf/clts"""
+    __github__ = "cldf-clts/clts"
     __api__ = CLTSAPI
     __api_pkg__ = pyclts
 
 
 class Concepticon(Catalog):
-    """concepticon/concepticon-data"""
+    __github__ = "concepticon/concepticon-data"
     __api__ = CachingConcepticonAPI
     __api_pkg__ = pyconcepticon
 

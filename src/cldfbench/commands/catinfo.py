@@ -3,7 +3,9 @@ Display information about catalogs in the system
 """
 import termcolor
 
-from cldfbench.cli_util import add_catalog_spec, Config
+from cldfcatalog import Config
+
+from cldfbench.cli_util import add_catalog_spec
 from cldfbench.catalogs import BUILTIN_CATALOGS
 from cldfbench.util import iter_aligned
 
@@ -35,7 +37,11 @@ def run(args):
 
         path, from_cfg = getattr(args, name), False
         if (not path) and (not args.no_config):
-            path, from_cfg = cfg['catalogs'].get(name), True
+            try:
+                path, from_cfg = cfg.get_clone(name), True
+            except KeyError as e:
+                args.log.warning(str(e))
+                continue
 
         try:
             cat = cat(path)
