@@ -6,8 +6,16 @@ from xml.etree import ElementTree as et
 
 import requests
 import termcolor
-import xlrd
-import openpyxl
+
+try:
+    import xlrd
+except ImportError:  # pragma: no cover
+    xlrd = None
+try:
+    import openpyxl
+except ImportError:  # pragma: no cover
+    openpyxl = None
+
 import pybtex
 from csvw import dsv
 from clldutils.misc import xmlchars, slug
@@ -67,6 +75,10 @@ class DataDir(type(pathlib.Path())):
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
 
     def xls2csv(self, fname, outdir=None):
+        if not xlrd:  # pragma: no cover
+            raise EnvironmentError(
+                'xls2csv is only available when cldfbench is installed with excel support\n'
+                'pip install cldfbench[excel]')
         fname = self._path(fname)
         res = {}
         outdir = outdir or self
@@ -82,6 +94,11 @@ class DataDir(type(pathlib.Path())):
         return res
 
     def xlsx2csv(self, fname, outdir=None):
+        if not openpyxl:  # pragma: no cover
+            raise EnvironmentError(
+                'xlsx2csv is only available when cldfbench is installed with excel support\n'
+                'pip install cldfbench[excel]')
+
         def _excel_value(x):
             if x is None:
                 return ""

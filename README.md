@@ -28,8 +28,10 @@ This workflow is supported via
 `cldfbench` can be installed via `pip` - preferably in a 
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - running
 ```bash
-pip install cldfbench
+pip install cldfbench[excel]
 ```
+
+Note: The `[excel]` extra specification will also install support for reading spreadsheet data.
 
 
 ## The command line interface `cldfbench`

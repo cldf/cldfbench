@@ -35,6 +35,7 @@ setup(
         'appdirs',
     ],
     extras_require={
+        'excel': ['openpyxl', 'xlrd'],
         'dev': ['flake8', 'wheel', 'twine'],
         'test': [
             'mock',
@@ -44,6 +45,8 @@ setup(
             'coverage>=4.2',
             'pyglottolog',
             'pyconcepticon',
+            'openpyxl',
+            'xlrd',
         ],
     },
     classifiers=[
