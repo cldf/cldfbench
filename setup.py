@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cldfbench',
-    version='0.4.1.dev0',
+    version='0.5.0',
     author='Robert Forkel',
     author_email='forkel@shh.mpg.de',
     description='Python library implementing a CLDF workbench',
@@ -33,6 +33,7 @@ setup(
         'termcolor',
         'requests',
         'appdirs',
+        'pytest',
     ],
     extras_require={
         'excel': ['openpyxl', 'xlrd'],
