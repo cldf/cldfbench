@@ -12,6 +12,7 @@ Templates can be customized by
 import pathlib
 import re
 import shutil
+import warnings
 import pkg_resources
 
 import attr
@@ -21,9 +22,13 @@ from cldfbench.metadata import Metadata
 
 
 def iter_scaffolds():
-    yield Template
+    yield 'cldfbench', Template
     for ep in pkg_resources.iter_entry_points('cldfbench.scaffold'):
-        yield ep.load()
+        try:
+            yield ep.name, ep.load()
+        except Exception as e:  # pragma: no cover
+            warnings.warn(
+                '{0} loading cldfbench.scaffold {1}'.format(e.__class__.__name__, ep.name))
 
 
 class Template(object):

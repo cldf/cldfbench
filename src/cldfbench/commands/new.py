@@ -12,8 +12,7 @@ _templates = None
 def get_template_dict():
     global _templates
     if _templates is None:
-        _templates = collections.OrderedDict(
-            [(tmpl.prefix, tmpl) for tmpl in scaffold.iter_scaffolds()])
+        _templates = collections.OrderedDict(scaffold.iter_scaffolds())
     return _templates
 
 
