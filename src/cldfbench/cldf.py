@@ -14,69 +14,6 @@ from cldfbench.util import iter_requirements
 __all__ = ['CLDFWriter', 'CLDFSpec']
 
 
-@attr.s
-class CLDFSpec(object):
-    """
-    Basic specification to initialize a CLDF Dataset.
-    """
-    # A directory where the CLDF data is located.
-    dir = attr.ib(converter=lambda s: pathlib.Path(s) if s else s)
-    # Dataset subclass or name of a module
-    module = attr.ib(
-        default='Generic',
-        converter=lambda cls: getattr(cls, '__name__', cls),
-        validator=attr.validators.in_([m.id for m in get_modules()])
-    )
-    # Path to the source file for the default metadata for a dataset:
-    default_metadata_path = attr.ib(default=None)
-    # Filename to be used for the actual copy of the metadata:
-    metadata_fname = attr.ib(default=None)
-    # A `dict` mapping component names to custom csv file names (which may be important
-    # if multiple different CLDF datasets are created in the same directory):
-    data_fnames = attr.ib(default=attr.Factory(dict))
-
-    def __attrs_post_init__(self):
-        if self.default_metadata_path:
-            self.default_metadata_path = pathlib.Path(self.default_metadata_path)
-            try:
-                Dataset.from_metadata(self.default_metadata_path)
-            except Exception:
-                raise ValueError('invalid default metadata: {0}'.format(self.default_metadata_path))
-        else:
-            self.default_metadata_path = pkg_path(
-                'modules', '{0}{1}'.format(self.module, MD_SUFFIX))
-
-        if not self.metadata_fname:
-            self.metadata_fname = self.default_metadata_path.name
-
-    @property
-    def metadata_path(self):
-        return (self.dir / self.metadata_fname) if self.dir else pathlib.Path(self.metadata_fname)
-
-    def make_clean(self):
-        self.dir.mkdir(exist_ok=True)
-        for p in self.dir.iterdir():
-            if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
-                p.unlink()
-        gitattributes = self.dir / '.gitattributes'
-        if not gitattributes.exists():
-            with gitattributes.open('wt') as fp:
-                fp.write('*.csv text eol=crlf')
-
-    def copy_metadata(self):
-        shutil.copy(str(self.default_metadata_path), str(self.metadata_path))
-
-    def get_dataset(self):
-        # Initialize a CLDF Dataset:
-        return self.cls.from_metadata(self.metadata_path)
-
-    @property
-    def cls(self):
-        for m in get_modules():
-            if m.id == self.module:
-                return m.cls
-
-
 class CLDFWriter(object):
     """
     An object mediating writing data as proper CLDF dataset.
@@ -118,6 +55,11 @@ class CLDFWriter(object):
             self.cldf_spec.make_clean()
         self.cldf_spec.copy_metadata()
         self._cldf = self.cldf_spec.get_dataset()
+        for comp, fname in self.cldf_spec.data_fnames.items():
+            try:
+                self._cldf[comp]
+            except KeyError:
+                self._cldf.add_component(comp, url=fname)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -156,7 +98,71 @@ class CLDFWriter(object):
             pass
 
         self.cldf.add_provenance(wasGeneratedBy=reqs)
-
-        for comp, fname in self.cldf_spec.data_fnames.items():
-            self.cldf[comp].url = csvw.Link(fname)
         self.cldf.write(**kw)
+
+
+@attr.s
+class CLDFSpec(object):
+    """
+    Basic specification to initialize a CLDF Dataset.
+    """
+    # A directory where the CLDF data is located.
+    dir = attr.ib(converter=lambda s: pathlib.Path(s) if s else s)
+    # Dataset subclass or name of a module
+    module = attr.ib(
+        default='Generic',
+        converter=lambda cls: getattr(cls, '__name__', cls),
+        validator=attr.validators.in_([m.id for m in get_modules()])
+    )
+    # Path to the source file for the default metadata for a dataset:
+    default_metadata_path = attr.ib(default=None)
+    # Filename to be used for the actual copy of the metadata:
+    metadata_fname = attr.ib(default=None)
+    # A `dict` mapping component names to custom csv file names (which may be important
+    # if multiple different CLDF datasets are created in the same directory):
+    data_fnames = attr.ib(default=attr.Factory(dict))
+    writer_cls = attr.ib(default=CLDFWriter)
+
+    def __attrs_post_init__(self):
+        if self.default_metadata_path:
+            self.default_metadata_path = pathlib.Path(self.default_metadata_path)
+            try:
+                Dataset.from_metadata(self.default_metadata_path)
+            except Exception:
+                raise ValueError('invalid default metadata: {0}'.format(self.default_metadata_path))
+        else:
+            self.default_metadata_path = pkg_path(
+                'modules', '{0}{1}'.format(self.module, MD_SUFFIX))
+
+        if not self.metadata_fname:
+            self.metadata_fname = self.default_metadata_path.name
+
+    @property
+    def metadata_path(self):
+        return (self.dir / self.metadata_fname) if self.dir else pathlib.Path(self.metadata_fname)
+
+    def make_clean(self):
+        self.dir.mkdir(exist_ok=True)
+        for p in self.dir.iterdir():
+            if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
+                p.unlink()
+        gitattributes = self.dir / '.gitattributes'
+        if not gitattributes.exists():
+            with gitattributes.open('wt') as fp:
+                fp.write('*.csv text eol=crlf')
+
+    def copy_metadata(self):
+        shutil.copy(str(self.default_metadata_path), str(self.metadata_path))
+
+    def get_dataset(self):
+        # Initialize a CLDF Dataset:
+        return self.cls.from_metadata(self.metadata_path)
+
+    def get_writer(self, args=None, dataset=None, clean=True):
+        return self.writer_cls(cldf_spec=self, args=args, dataset=dataset, clean=clean)
+
+    @property
+    def cls(self):
+        for m in get_modules():
+            if m.id == self.module:
+                return m.cls

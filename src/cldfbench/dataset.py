@@ -10,7 +10,7 @@ from clldutils.path import sys_path
 from clldutils.misc import lazyproperty, nfilter
 from cldfcatalog import Repository
 
-from cldfbench.cldf import CLDFWriter, CLDFSpec
+from cldfbench.cldf import CLDFSpec
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
 
@@ -99,7 +99,6 @@ class Dataset(object):
     dir = None
     id = None
     metadata_cls = Metadata
-    cldf_writer_cls = CLDFWriter
 
     def __init__(self):
         if not self.dir:
@@ -154,13 +153,13 @@ class Dataset(object):
         :param clean: `bool` flag signaling whether to clean the CLDF dir before writing. \
         Note that `False` must be passed for subsequent calls to `cldf_writer` in case the \
         spec re-uses a directory.
-        :return: a `self.cldf_writer_cls` instance, for write-access to CLDF data. \
+        :return: a `cldf_spec.writer_cls` instance, for write-access to CLDF data. \
         This method should be used in a with-statement, and will then return a `CLDFWriter` with \
         an empty working directory.
         """
         if not isinstance(cldf_spec, CLDFSpec):
             cldf_spec = self.cldf_specs_dict[cldf_spec]
-        return self.cldf_writer_cls(cldf_spec=cldf_spec, args=args, dataset=self, clean=clean)
+        return cldf_spec.get_writer(args=args, dataset=self, clean=clean)
 
     def cldf_reader(self, cldf_spec=None):
         """

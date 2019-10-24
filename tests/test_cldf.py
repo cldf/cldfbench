@@ -36,7 +36,7 @@ def test_cldf(tmpdir):
     assert outdir.glob('*-metadata.json')
 
     with CLDFWriter(CLDFSpec(dir=outdir, data_fnames=dict(ValueTable='data.csv'))) as writer:
-        writer.cldf.add_component('ValueTable')
+        assert writer.cldf['ValueTable']
         writer['ValueTable', 'value'].separator = '|'
         writer.objects['ValueTable'].append(
             dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
