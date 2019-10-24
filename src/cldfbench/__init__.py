@@ -2,4 +2,4 @@
 from cldfbench.dataset import *  # noqa: F401, F403
 from cldfbench.cldf import *  # noqa: F401, F403
 
-__version__ = '0.5.1.dev0'
+__version__ = '0.6.0'
