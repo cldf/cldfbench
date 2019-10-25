@@ -217,7 +217,7 @@ For more info see the [`commands.README`](src/cldfbench/commands/README.md).
 
 A python package can provide alternative dataset templates to be run with `cldfbench new`.
 Such templates are implemented by
-- a subclass of `cldfbench.scaffolds.Template`,
+- a subclass of `cldfbench.Template`,
 - which is advertised using an entry point `cldfbench.scaffold`:
 
 ```python

@@ -30,7 +30,7 @@ def check(ds, args):
     # validate
     args.log.info("Validating CLDF...")
     for key, cldf_spec in ds.cldf_specs_dict.items():
-        #rgs.log.info('{0} at {1}'.format(key or 'Default', cldf_spec.metadata_path))
+        # args.log.info('{0} at {1}'.format(key or 'Default', cldf_spec.metadata_path))
         cldf = cldf_spec.get_dataset()
         cldf.validate(log=args.log)
 
@@ -52,11 +52,11 @@ def check(ds, args):
             args.log.warning('Dataset has no LanguageTable')
 
         # Check sources
-        #args.log.info("Checking Sources...")
-        #sources_in_forms = check_sources(cldf)
-        #sources_in_bib = cldf.sources.keys()
-        #for s in sources_in_forms:
-        #    if s not in sources_in_bib:
-        #        args.log.warning("Source '%s' is not defined in sources.bib" % s)
-        #    if s == "":
-        #        args.log.warning("%d lexemes have no source defined" % sources_in_forms[s])
+        # args.log.info("Checking Sources...")
+        # sources_in_forms = check_sources(cldf)
+        # sources_in_bib = cldf.sources.keys()
+        # for s in sources_in_forms:
+        #     if s not in sources_in_bib:
+        #         args.log.warning("Source '%s' is not defined in sources.bib" % s)
+        #     if s == "":
+        #         args.log.warning("%d lexemes have no source defined" % sources_in_forms[s])

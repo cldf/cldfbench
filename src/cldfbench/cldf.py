@@ -4,7 +4,6 @@ import shutil
 import pathlib
 
 import attr
-import csvw
 from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
 from pycldf.util import pkg_path
 

@@ -20,6 +20,8 @@ import attr
 import cldfbench
 from cldfbench.metadata import Metadata
 
+__all__ = ['Template']
+
 
 def iter_scaffolds():
     yield 'cldfbench', Template
