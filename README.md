@@ -9,18 +9,25 @@ Tooling to create CLDF datasets from existing data
 ## Overview
 
 This package provides tools to curate cross-linguistic data, with the goal of
-packaging it as [CLDF](https://cldf.clld.org) dataset.
+packaging it as [CLDF](https://cldf.clld.org) datasets.
 
 In particular, it supports a workflow where 
-- "raw" source data is downloaded to a `raw` subdirectory,
-- and subsequently converted to a CLDF dataset in a `cldf` subdirectory, with the help of
-  - configuration data in a `etc` directory
-  - custom Python code (a subclass of [`cldfbench.Dataset`](src/cldfbench/dataset.py) which implements the workflow actions)
+- "raw" source data is downloaded to a `raw/` subdirectory,
+- and subsequently converted to one or more CLDF datasets in a `cldf/` subdirectory, with the help of
+  - configuration data in a `etc/` directory and
+  - custom Python code (a subclass of [`cldfbench.Dataset`](src/cldfbench/dataset.py) which implements the workflow actions).
 
 This workflow is supported via
-- a commandline interface `cldfbench` which calls the workflow actions via [subcommands](src/cldfbench/commands),
+- a commandline interface `cldfbench` which calls the workflow actions as [subcommands](src/cldfbench/commands),
 - a `cldfbench.Dataset` base class, which must be overwritten in a custom module
   to hook custom code into the workflow.
+
+With this workflow and the separation of the data into three directories we want
+to provide a workbench for transparently deriving CLDF data from data that has been
+published before. In particular we want to delineate clearly
+- what's part of the original or source data (`raw`), 
+- what kind of information is added (`etc`)
+- to the derived data (`cldf`).
 
 
 ## Install
@@ -66,7 +73,7 @@ Most `cldfbench` commands operate on an existing dataset (unlike `new`, which
 creates a new one). Datasets can be discovered in two ways:
 
 1. Via the python module (i.e. the `*.py` file, containing the `Dataset` subclass).
-   To use this mode of discovery, pass the path to the python module whenever
+   To use this mode of discovery, pass the path to the python module
    as `DATASET` argument, when required by a command.
 
 2. Via [entry point](https://packaging.python.org/specifications/entry-points/) and
@@ -118,20 +125,28 @@ This custom code goes into the `cmd_makecldf` method of the `Dataset` subclass i
 the dataset's python module.
 
 Typically, this code will make use of one or more
-- `cldfbench.CLDFWriter` instances, which can be obtained by calling `Dataset.cldf_writer`, passing in a
-- `cldfbench.CLDFSpec` instance, which describes what kind of CLDF to create.
+[`cldfbench.CLDFSpec`](src/cldfbench/cldf.py) instances, which describes what kind of CLDF to create. A `CLDFSpec` also gives access to a
+[`cldfbench.CLDFWriter`](src/cldfbench/cldf.py) instance, which wraps a `pycldf.Dataset`.
+
+The main interfaces to these objects are
+- `cldfbench.Dataset.cldf_specs`: a method returning specifications of all CLDF datasets
+  that are created by the dataset,
+- `cldfbench.Dataset.cldf_writer`: a method returning an initialized `CLDFWriter` 
+  associated with a particular `CLDFSpec`.
 
 `cldfbench` supports several scenarios of CLDF creation:
 - The typical use case is turning raw data into a single CLDF dataset. This would
   require instantiating one `CLDFWriter` writer in the `cmd_makecldf` method, and
-  the defaults of `CLDFSpec` will probably be ok.
+  the defaults of `CLDFSpec` will probably be ok. Since this is the most common and
+  simplest case, it is supported with some extra "sugar": The initialized `CLDFWriter`
+  is available as `args.writer` when `cmd_makecldf` is called.
 - But it is also possible to create multiple CLDF datasets:
   - For a dataset containing both, lexical and typological data, it may be appropriate
     to create a `Ẁordlist` and a `StructureDataset`. To do so, one would have to
     call `cldf_writer` twice, passing in an approriate `CLDFSpec`. Note that if
     both CLDF datasets are created in the same directory, they can share the
     `LanguageTable` - but would have to specify distinct file names for the
-    `ParameterTable`, passing distinct values to `CLDFSpec.data_fnames`
+    `ParameterTable`, passing distinct values to `CLDFSpec.data_fnames`.
   - When creating multiple datasets of the same CLDF module, e.g. to split a large  dataset into smaller chunks, care must be taken to also disambiguate the name
     of the metadata file, passing distinct values to `CLDFSpec.metadata_fname`.
 
@@ -183,15 +198,32 @@ Thus, with a setup as described here, you can make sure you create [FAIR data](h
 
 ## Extending `cldfbench`
 
-### Custom dataset templates
+`cldfbench` can be extended or built-upon in various ways - typically by customizing
+core functionality in new python packages. To support particular types of raw data,
+ you might want a custom `Dataset` class, or to support a particular type of CLDF data,
+  you would customize `CLDFWriter`.
 
-A python package can provide alternative dataset templates to be run with `cldfbench new`.
-
-TODO
+In addition to extending `cldfbench` using the standard methods of object-oriented
+programming, there are two more ways of extending `cldfbench`:
 
 
 ### Commands
 
 A python package can provide additional subcommands to be run from `cldfbench`.
+For more info see the [`commands.README`](src/cldfbench/commands/README.md).
 
-TODO
+
+### Custom dataset templates
+
+A python package can provide alternative dataset templates to be run with `cldfbench new`.
+Such templates are implemented by
+- a subclass of `cldfbench.scaffolds.Template`,
+- which is advertised using an entry point `cldfbench.scaffold`:
+
+```python
+    entry_points={
+        'cldfbench.scaffold': [
+            'template_name=mypackage.scaffold:DerivedTemplate',
+        ],
+    },
+```
