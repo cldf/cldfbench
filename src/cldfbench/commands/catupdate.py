@@ -1,5 +1,8 @@
 """
 Update local clones of catalog repositories.
+
+Note: This only *fetches* from the origin repository, i.e. the checked
+out branch will *not* be updated (like with `git pull`).
 """
 from cldfcatalog import Config
 
