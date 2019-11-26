@@ -32,6 +32,7 @@ def test_misc(tmpdir, mocker, glottolog_dir):
     _main('new --out=' + str(tmpdir))
     dsdir = pathlib.Path(str(tmpdir)).joinpath('abc')
     assert dsdir.is_dir()
+    assert dsdir.joinpath('.gitignore').exists()
     mod = dsdir / 'cldfbench_abc.py'
     assert mod.exists()
     _main('makecldf ' + str(mod) + ' --glottolog ' + str(glottolog_dir))
