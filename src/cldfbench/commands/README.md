@@ -16,3 +16,26 @@ Code to be run as subcommand in the `cldfbench` cli must comply with the followi
 
 A command's `register` function can use packaged functionality from `cldfbench.cli_util`, e.g.
 to add options for standard reference catalogs (see `cldfbench.catalogs`), or for dataset discovery.
+
+
+## Dataset specific commands
+
+Individual datasets can be installed as Python packages as well, thanks to their `setup.py` file.
+This means that you can provide custom `cldfbench` subcommands with a dataset, e.g.
+commands to analyze the CLDF data created from a dataset.
+
+To do so,
+- add a Python package `commands` to your dataset, i.e. create a subdirectory `commands`, containing
+  - an empty file `__init__.py`,
+  - python modules as specified above implementing the ommands,
+- make this package known to `cldfbench` via an entry point in `setup.py`:
+  ```python
+  entry_points={
+      'cldfbench.commands': [
+          'dsid=commands',
+      ],
+  }
+  ```
+- install the dataset running `pip install -e .`
+- check the availability of your custom commands running `cldfbench -h`.
+

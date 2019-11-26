@@ -209,7 +209,7 @@ programming, there are two more ways of extending `cldfbench`:
 
 ### Commands
 
-A python package can provide additional subcommands to be run from `cldfbench`.
+A python package (or a dataset) can provide additional subcommands to be run from `cldfbench`.
 For more info see the [`commands.README`](src/cldfbench/commands/README.md).
 
 
