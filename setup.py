@@ -34,7 +34,11 @@ setup(
         'pytest',
     ],
     extras_require={
-        'excel': ['openpyxl', 'xlrd'],
+        'excel': [
+            'openpyxl<3.0.1; python_version <= "3.5"', 
+            'openpyxl; python_version > "3.5"', 
+            'xlrd',
+        ],
         'dev': ['flake8', 'wheel', 'twine'],
         'test': [
             'mock',
@@ -44,7 +48,8 @@ setup(
             'coverage>=4.2',
             'pyglottolog',
             'pyconcepticon',
-            'openpyxl',
+            'openpyxl<3.0.1; python_version <= "3.5"', 
+            'openpyxl; python_version > "3.5"', 
             'xlrd',
         ],
     },
