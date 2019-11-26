@@ -32,7 +32,8 @@ def run(args):
 
         print()
         print(termcolor.colored(
-            '{0} - https://github.com/{1}'.format(name, cat.__github__), attrs=['bold', 'underline']))
+            '{0} - https://github.com/{1}'.format(name, cat.__github__),
+            attrs=['bold', 'underline']))
         print()
 
         path, from_cfg = getattr(args, name), False
