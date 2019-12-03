@@ -96,7 +96,7 @@ For a full example of the `cldfbench` curation workflow, see [the tutorial](doc/
 A directory containing stub entries for a dataset can be created running
 
 ```bash
-cldfbench new cldfbench OUTDIR
+cldfbench new
 ```
 
 This will create the following layout (where `<ID>` stands for the chosen dataset ID):
