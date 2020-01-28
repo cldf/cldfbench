@@ -31,7 +31,7 @@ def iter_datasets(ep=ENTRY_POINT):
             cls = ep.load()
             yield cls()  # yield an initialized `Dataset` object.
         except ImportError as e:  # pragma: no cover
-            logging.getLogger('cldfbench').warning(str(e))
+            logging.getLogger('cldfbench').warning('Error importing {0}: {1}'.format(ep.name, e))
 
 
 def get_dataset(spec, ep=ENTRY_POINT):
