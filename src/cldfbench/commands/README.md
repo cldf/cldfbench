@@ -25,17 +25,19 @@ This means that you can provide custom `cldfbench` subcommands with a dataset, e
 commands to analyze the CLDF data created from a dataset.
 
 To do so,
-- add a Python package `commands` to your dataset, i.e. create a subdirectory `commands`, containing
+- add a Python package with a unique name (e.g. `<datasetid>commands` to your dataset, i.e. create a 
+  subdirectory `<datasetid>commands`, containing
   - an empty file `__init__.py`,
-  - python modules as specified above implementing the ommands,
+  - python modules as specified above implementing the commands,
 - make this package known to `cldfbench` via an entry point in `setup.py`:
   ```python
   entry_points={
       'cldfbench.commands': [
-          'dsid=commands',
+          'dsid=<datasetid>commands',
       ],
   }
   ```
 - install the dataset running `pip install -e .`
 - check the availability of your custom commands running `cldfbench -h`.
 
+Note: Since the package containing the commands is imported as top-level Python, it is important to give it a name that does not clash with any other Python package you may want to use! Python packages and modules are singletons identified by name, so only one will be imported!
