@@ -1,5 +1,7 @@
 """
 Run generic CLDF checks
+
+Returns 1 on validation error, else 2 if there are warnings or 0.
 """
 import attr
 import pytest
