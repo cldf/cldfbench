@@ -111,7 +111,7 @@ class DataDir(type(pathlib.Path())):
         outdir = outdir or self
         wb = openpyxl.load_workbook(str(fname), data_only=True)
         for sname in wb.sheetnames:
-            sheet = wb.get_sheet_by_name(sname)
+            sheet = wb[sname]
             path = outdir.joinpath(fname.stem + '.' + slug(sname, lowercase=False) + '.csv')
             with dsv.UnicodeWriter(path) as writer:
                 for row in sheet.rows:
