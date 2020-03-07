@@ -21,15 +21,15 @@ class Metadata(object):
     """
     id = attr.ib(
         default=None,
-        metadata=dict(elicit=True))
+        metadata=dict(elicit=True, required=True))
     title = attr.ib(
         default=None,
-        metadata=dict(elicit=True))
+        metadata=dict(elicit=True, required=True))
     description = attr.ib(
         default=None)
     license = attr.ib(
         default=None,
-        metadata=dict(elicit=True))
+        metadata=dict(elicit=True, required=True))
     url = attr.ib(
         default=None,
         metadata=dict(elicit=True))

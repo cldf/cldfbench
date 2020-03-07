@@ -1,6 +1,7 @@
-import pathlib
-import shutil
 import shlex
+import shutil
+import pathlib
+import logging
 
 import pytest
 
@@ -16,7 +17,7 @@ def tmpds(fixtures_dir, tmpdir):
 
 
 def _main(cmd, **kw):
-    cli.main(shlex.split('--no-config ' + cmd), **kw)
+    return cli.main(shlex.split('--no-config ' + cmd), **kw)
 
 
 def test_help(capsys):
@@ -119,5 +120,29 @@ def test_catalog_from_config(glottolog_dir, tmpds, mocker, tmpdir, fixtures_dir)
 
 def test_workflow(tmpds, glottolog_dir):
     _main('makecldf ' + tmpds + ' --glottolog ' + str(glottolog_dir))
-    _main('check ' + tmpds + ' --glottolog ' + str(glottolog_dir))
+    assert _main('check ' + tmpds + ' --with-validation', log=logging.getLogger(__name__)) == 1
     _main('geojson ' + tmpds)
+
+
+def test_check(tmpds, tmpdir):
+    tmpdir.join('metadata.json').write_text("""{
+      "title": "",
+      "citation": "Author Year",
+      "description": "Some text - possibly markdown",
+      "url":  "http://example.org",
+      "license": "CC-BY-4.0"
+    }
+    """, encoding='utf8')
+    # Required metadata is missing:
+    assert _main('check ' + tmpds, log=logging.getLogger(__name__)) == 2
+
+    tmpdir.join('metadata.json').write_text("""{
+  "title": "stuff",
+  "citation": "",
+  "description": "Some text - possibly markdown",
+  "url":  "http://example.org",
+  "license": "CC-BY-4.0"
+}
+""", encoding='utf8')
+    # Optional metadata is missing:
+    assert _main('check ' + tmpds, log=logging.getLogger(__name__)) == 0

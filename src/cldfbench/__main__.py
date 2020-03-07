@@ -20,7 +20,7 @@ from cldfbench.catalogs import BUILTIN_CATALOGS
 import cldfbench.commands
 
 
-def main(args=None, catch_all=False, parsed_args=None):
+def main(args=None, catch_all=False, parsed_args=None, log=None):
     parser, subparsers = get_parser_and_subparsers(cldfbench.__name__)
 
     # We add a "hidden" option to turn-off config file reading in tests:
@@ -36,7 +36,10 @@ def main(args=None, catch_all=False, parsed_args=None):
         return 1
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(Logging(args.log, level=args.log_level))
+        if not log:  # pragma: no cover
+            stack.enter_context(Logging(args.log, level=args.log_level))
+        else:
+            args.log = log
         # args.no_catalogs is set by the `config` command, because this command specifies
         # catalog options **optionally**, and prompts for user input only in its `run` function.
         if not getattr(args, "no_catalogs", False):

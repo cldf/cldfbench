@@ -79,10 +79,13 @@ def with_dataset(args, func, dataset=None):
             raise ParserError('Dataset {0} has no {1} command'.format(dataset.id, func))
         func, arg = func_, []
     args.log.info('running {0} on {1} ...'.format(getattr(func, '__name__', func), dataset.id))
-    func(*arg, args)
+    res = func(*arg, args)
     args.log.info('... done %s [%.1f secs]' % (dataset.id, time() - s))
+    return res
 
 
 def with_datasets(args, func):
+    res = []
     for ds in get_datasets(args):
-        with_dataset(args, func, dataset=ds)
+        res.append(with_dataset(args, func, dataset=ds))
+    return res
