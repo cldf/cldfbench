@@ -55,6 +55,10 @@ def test_info(capsys, fixtures_dir):
     out, _ = capsys.readouterr()
     assert 'Thing' in out
 
+    _main('info ' + str(fixtures_dir / 'module.py') + ' --cldf')
+    out, _ = capsys.readouterr()
+    assert 'StructureDataset-metadata.json' in out
+
 
 def test_run(caplog, tmpds):
     with pytest.raises(ValueError):
