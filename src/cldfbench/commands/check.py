@@ -41,6 +41,6 @@ def check(ds, args):
 
     for field in attr.fields(ds.metadata.__class__):
         if field.metadata.get('required', False) and not getattr(ds.metadata, field.name):
-            args.log.warning('missing')
+            args.log.warning('Empty field "{0}" in metadata'.format(field.name))
             warnings.append(field.name)
     return (2 if warnings else 0) if success else 1
