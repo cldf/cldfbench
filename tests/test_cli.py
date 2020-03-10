@@ -128,6 +128,27 @@ def test_workflow(tmpds, glottolog_dir):
     _main('geojson ' + tmpds)
 
 
+def test_diff(tmpds, tmpdir, mocker, caplog, glottolog_dir):
+    class Item:
+        def __init__(self, p):
+            self.a_path = 'cldf/' + p
+
+    class git:
+        def Repo(self, *args):
+            return mocker.Mock(
+                git=mocker.Mock(
+                    show=lambda _: '{"dc:title": "x"}',
+                    status=lambda _: 'abc'
+                ),
+                index=mocker.Mock(
+                    diff=lambda _: [
+                        Item('.gitattributes'), Item('StructureDataset-metadata.json')]))
+    mocker.patch('cldfbench.commands.diff.git', git())
+    _main('makecldf ' + tmpds + ' --glottolog ' + str(glottolog_dir))
+    assert _main('diff ' + tmpds, log=logging.getLogger(__name__)) == 2
+    assert len(caplog.records) == 11
+
+
 def test_check(tmpds, tmpdir):
     tmpdir.join('metadata.json').write_text("""{
       "title": "",
