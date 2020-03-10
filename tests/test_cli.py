@@ -163,8 +163,8 @@ def test_check(tmpds, tmpdir):
 
     tmpdir.join('metadata.json').write_text("""{
   "title": "stuff",
-  "citation": "",
-  "description": "Some text - possibly markdown",
+  "citation": "cit",
+  "description": "",
   "url":  "http://example.org",
   "license": "CC-BY-4.0"
 }

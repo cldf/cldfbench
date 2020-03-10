@@ -35,7 +35,7 @@ class Metadata(object):
         metadata=dict(elicit=True))
     citation = attr.ib(
         default=None,
-        metadata=dict(elicit=True))
+        metadata=dict(elicit=True, required=True))
 
     @classmethod
     def elicit(cls):
