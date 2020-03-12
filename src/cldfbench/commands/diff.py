@@ -60,7 +60,10 @@ def diff(ds, args):
         return diff
 
     def derived_to_dict(d):
-        return {o['dc:title']: o['dc:created'] for o in d.get('prov:wasDerivedFrom', [])}
+        return {
+            o['dc:title']: o['dc:created'] for o in d.get('prov:wasDerivedFrom', [])
+            if not ds.repo or (o.get('rdf:about') != ds.repo.url)
+        }
 
     if md_changed:
         exclude = {'tables', 'prov:wasGeneratedBy', 'prov:wasDerivedFrom'}
