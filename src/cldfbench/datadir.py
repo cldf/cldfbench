@@ -29,7 +29,7 @@ __all__ = ['get_url', 'DataDir']
 def get_url(url, log=None, **kw):
     res = requests.get(url, **kw)
     if log:
-        level = log.info if res.status_code == 200 else log.warn
+        level = log.info if res.status_code == 200 else log.warning
         level('HTTP {0} for {1}'.format(
             termcolor.colored(res.status_code, 'blue'), termcolor.colored(url, 'blue')))
     return res
