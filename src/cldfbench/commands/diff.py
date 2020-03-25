@@ -7,6 +7,7 @@ If there are differences, this means current HEAD of the repository at GitHub **
 released, but changes must be commited and pushed to GitHub first.
 """
 import json
+import difflib
 import pathlib
 
 import git
@@ -17,6 +18,7 @@ from cldfbench.cli_util import with_dataset, add_dataset_spec
 
 def register(parser):
     add_dataset_spec(parser)
+    parser.add_argument('--verbose', action='store_true', default=False)
 
 
 def run(args):
@@ -26,6 +28,12 @@ def run(args):
         args.log.info('Please commit and push changes to GitHub before releasing the dataset!')
         args.log.info('----------------------------------------------------------------------')
     return res
+
+
+def print_diff(diff, d):  # pragma: no cover
+    a = diff.a_blob.data_stream.read().decode('utf-8').splitlines()
+    b = d.joinpath(diff.a_path).read_text(encoding='utf8').splitlines()
+    print('\n'.join(difflib.unified_diff(a, b, fromfile=diff.a_path, lineterm='', n=1)))
 
 
 def diff(ds, args):
@@ -38,7 +46,13 @@ def diff(ds, args):
     md_changed = None
     print(repo.git.status('cldf'))
 
-    for item in repo.index.diff(None):
+    diff = repo.index.diff(None)
+
+    if args.verbose:  # pragma: no cover
+        for diff_item in diff.iter_change_type('M'):
+            print_diff(diff_item, ds.dir)
+
+    for item in diff:
         if item.a_path.startswith('cldf/'):
             p = pathlib.Path(item.a_path)
             if (not p.name.startswith('.')) and p.name != 'requirements.txt':
