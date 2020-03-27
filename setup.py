@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cldfbench',
-    version='1.2.2.dev0',
+    version='1.2.2',
     author='Robert Forkel',
     author_email='forkel@shh.mpg.de',
     description='Python library implementing a CLDF workbench',
