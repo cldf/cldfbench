@@ -6,18 +6,18 @@ the data of the [WALS](https://wals.info) feature ["Consonant Inventories"](http
 Throughout the tutorial we will interact with `cldfbench`'s **c**ommand **l**ine **i**nterface.
 This cli is a single command `cldfbench`, providing access to subcommands. To get a list of available
 subcommands, run
-```bash
+```shell script
 cldfbench -h
 ```
 to get help on usage of a particular subcommand (e.g. the subcommand `new`), run
-```bash
+```shell script
 cldfbench new -h
 ```
 
 1. Create a dataset directory, initialized with a skeleton suitable for 
    curation with `cldfbench`:
 
-   ```bash
+   ```shell script
    $ cldfbench new
    id: theid
    title: The Title 
@@ -28,7 +28,7 @@ cldfbench new -h
    Note that we specified `theid` as dataset ID when prompted. So now we should see
    a directory `theid` in our working directory:
 
-   ```bash
+   ```shell script
    $ tree theid/
    theid/
    ├── cldf
@@ -104,7 +104,7 @@ cldfbench new -h
      `cldfbench.cldf.CLDFWriter` instance is available as `args.writer`.
 
    Again, we can run the command from the command line:
-   ```bash
+   ```shell script
    $ cldfbench makecldf theid/cldfbench_theid.py ../glottolog/glottolog
    INFO    running cmd_makecldf on theid ...
    INFO    ... done theid [0.1 secs]
@@ -114,7 +114,7 @@ cldfbench new -h
    because CLDF datasets should link to standard reference catalogs.
 
    Inspecting the results, we see ...
-   ```bash
+   ```shell script
    $ tree theid/cldf
    theid/cldf
    ├── README.md
@@ -122,7 +122,7 @@ cldfbench new -h
    └── values.csv
    ```
    ... a valid CLDF dataset:
-   ```bash
+   ```shell script
    $ cldf stats theid/cldf/StructureDataset-metadata.json 
    <cldf:v1.0:StructureDataset at theid/cldf>
    key            value

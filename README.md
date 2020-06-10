@@ -25,27 +25,35 @@ This workflow is supported via
 With this workflow and the separation of the data into three directories we want
 to provide a workbench for transparently deriving CLDF data from data that has been
 published before. In particular we want to delineate clearly
-- what's part of the original or source data (`raw`), 
-- what kind of information is added (`etc`)
-- to the derived data (`cldf`).
+- what forms part of the original or source data (`raw`), 
+- what kind of information is added by the curators of the CLDF dataset (`etc`)
+- and what data was derived using the workbench (`cldf`).
+
+
+### Further reading
+
+- Paper - accepted for LREC 2020 - introducing `cldfbench` using an extended, real-world example:
+
+> Forkel, R., & List, J.-M. (2020). CLDFBench: Give your cross-linguistic data a lift. In N. Calzolari, F. Béchet, P. Blache, K. Choukri, C. Cieri, T. Declerck, et al. (Eds.), Proceedings of the 12th Conference on Language Resources and Evaluation (LREC 2020) (pp. 6995-7002). Paris: European Language Resources Association (ELRA). [[PDF]](https://pure.mpg.de/pubman/item/item_3231858_1/component/file_3231859/shh2600.pdf)
 
 
 ## Install
 
 `cldfbench` can be installed via `pip` - preferably in a 
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - running
-```bash
+```shell script
 pip install cldfbench[excel]
 ```
 
-Note: The `[excel]` extra specification will also install support for reading spreadsheet data.
+Note: The `[excel]` [extra specification](https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies) 
+will also install support for reading spreadsheet data.
 
 
 ## The command line interface `cldfbench`
 
 Installing the python package will also install a command `cldfbench` available on
 the command line:
-```bash
+```shell script
 $ cldfbench -h
 usage: cldfbench [-h] [--log-level LOG_LEVEL] COMMAND ...
 
@@ -157,7 +165,7 @@ a description of how this is supported by `cldfbench`.
 
 ### Catalogs
 
-Linking data to reference catalogs is a major goal of CLDF dataset, thus `cldfbench`
+Linking data to reference catalogs is a major goal of CLDF, thus `cldfbench`
 provides tools to make catalog access and maintenance easier. Catalog data must be
 accessible in local clones of the data repository. `cldfbench` provides commands
 - `catconfig` to create the clones and make them known through a configuration file,
@@ -169,7 +177,7 @@ accessible in local clones of the data repository. `cldfbench` provides commands
 
 One of the design goals of CLDF was to specify a data format that plays well with
 version control. Thus, it's natural - and actually recommended - to curate a CLDF
-dataset in a version controled repository. The most popular way to do this in a
+dataset in a version controlled repository. The most popular way to do this in a
 collaborative fashion is by using a [git](https://git-scm.com/) repository hosted on 
 [GitHub](https://github.com).
 
