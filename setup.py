@@ -26,7 +26,7 @@ setup(
     install_requires=[
         'csvw>=1.5.6',
         'cldfcatalog>=1.3',
-        'clldutils>=3.1.2',
+        'clldutils>=3.5.2',
         'pycldf>=1.8.2',
         'termcolor',
         'requests',
@@ -46,7 +46,7 @@ setup(
             'pytest-mock',
             'pytest-cov',
             'coverage>=4.2',
-            'pyglottolog',
+            'pyglottolog>=3.2.2',
             'pyconcepticon',
             'openpyxl<3.0.1; python_version <= "3.5"', 
             'openpyxl; python_version > "3.5"', 
