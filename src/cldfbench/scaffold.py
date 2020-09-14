@@ -26,7 +26,7 @@ __all__ = ['Template']
 def iter_scaffolds():
     yield 'cldfbench', Template
     for ep in pkg_resources.iter_entry_points('cldfbench.scaffold'):
-        try:
+        try:  # pragma: no cover
             yield ep.name, ep.load()
         except Exception as e:  # pragma: no cover
             warnings.warn(
@@ -81,7 +81,7 @@ class Template(object):
                     target = path.name
                     if '+' in path.name:
                         target = re.sub(
-                            '\+([a-z]+)\+',
+                            r'\+([a-z]+)\+',
                             lambda m: '{' + m.groups()[0] + '}',
                             path.name
                         ).format(**ctx)

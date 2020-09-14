@@ -41,7 +41,6 @@ setup(
         ],
         'dev': ['flake8', 'wheel', 'twine'],
         'test': [
-            'mock',
             'pytest>=5',
             'pytest-mock',
             'pytest-cov',
