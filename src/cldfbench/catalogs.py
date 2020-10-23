@@ -21,7 +21,7 @@ try:  # pragma: no cover
 
         @lazyproperty
         def cached_languoids(self):
-            return {l.id: l for l in self.languoids()}
+            return {lang.id: lang for lang in self.languoids()}
 
         @lazyproperty
         def languoid_details(self):

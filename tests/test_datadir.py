@@ -42,7 +42,8 @@ def test_datadir_excel(datadir):
 
     datadir.xlsx2csv(datadir / 'test.xlsx')
     data = datadir.read_csv('test.Sheet2.csv')
-    assert data[1] == ['1']
+    assert data[1] == ['1.01']
+    assert data[2] == ['2']
 
 
 def test_datadir_download_and_unpack(datadir, mocker):

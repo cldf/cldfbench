@@ -102,8 +102,11 @@ class DataDir(type(pathlib.Path())):
         def _excel_value(x):
             if x is None:
                 return ""
-            if isinstance(x, float):
-                return '{0}'.format(int(x))
+            if isinstance(x, float) and int(x) == x:
+                # Since Excel does not have an integer type, integers are rendered as "n.0",
+                # which in turn confuses type detection of tools like csvkit. Thus, we normalize
+                # numbers of the form "n.0" to "n".
+                return '{0}'.format(int(x))  # pragma: no cover
             return '{0}'.format(x).strip()
 
         fname = self._path(fname)
