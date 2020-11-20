@@ -21,6 +21,7 @@ def test_get_url(mocker):
 def test_datadir(datadir):
     datadir.write('fname', '{"a": 2}')
     assert datadir.read('fname')
+    assert datadir.read('fname', normalize='NFC')
     assert datadir.read_json('fname')['a'] == 2
     datadir.write('sources.bib', '@article{id,\ntitle={the title}\n}')
     assert len(datadir.read_bib()) == 1
@@ -30,6 +31,10 @@ def test_datadir_csv(datadir):
     rows = [['a', 'b'], ['c', 'd']]
     datadir.write_csv('test.csv', rows)
     assert datadir.read_csv('test.csv') == rows
+    assert datadir.read_csv('test.csv', normalize='NFC') == rows
+    assert datadir.read_csv(
+            'test.csv', normalize='NFC', dicts=True)[0]['a'] =='c'
+
 
 
 def test_datadir_xml(datadir):

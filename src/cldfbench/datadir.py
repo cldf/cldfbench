@@ -3,6 +3,8 @@ import contextlib
 import zipfile
 import shutil
 from xml.etree import ElementTree as et
+import collections
+import unicodedata
 
 import requests
 import termcolor
@@ -22,6 +24,7 @@ from clldutils.misc import xmlchars, slug
 from clldutils.path import TemporaryDirectory
 from clldutils import jsonlib
 from pycldf.sources import Source
+
 
 __all__ = ['get_url', 'DataDir']
 
@@ -47,15 +50,29 @@ class DataDir(type(pathlib.Path())):
             return self / fname
         return pathlib.Path(fname)
 
-    def read(self, fname, encoding='utf8'):
-        return self._path(fname).read_text(encoding=encoding)
+    def read(self, fname, normalize=None, encoding='utf8'):
+        if not normalize:
+            return self._path(fname).read_text(encoding=encoding)
+        return unicodedata.normalize(
+                normalize, self._path(fname).read_text(encoding=encoding))
 
     def write(self, fname, text, encoding='utf8'):
         self._path(fname).write_text(text, encoding=encoding)
         return fname
 
-    def read_csv(self, fname, **kw):
-        return list(dsv.reader(self._path(fname), **kw))
+    def read_csv(self, fname, normalize=None, **kw):
+        if not normalize:
+            return list(dsv.reader(self._path(fname), **kw))
+        if kw.get('dicts'):
+            return [collections.OrderedDict(
+                        [(
+                            k, unicodedata.normalize(normalize, v)
+                            ) for k, v in row.items()]
+                        ) for row in dsv.reader(self._path(fname), **kw)]
+        else:
+            return [[
+                unicodedata.normalize(normalize, k) for k in row
+                ] for row in dsv.reader(self._path(fname), **kw)]
 
     def write_csv(self, fname, rows, **kw):
         with dsv.UnicodeWriter(self._path(fname), **kw) as writer:
