@@ -19,3 +19,13 @@ def test_md(mocker):
     assert 'creativecommons' in md.common_props()['dc:license']
     md.license = 'some license'
     assert md.common_props()['dc:license'] == 'some license'
+
+
+def test_get_creators_and_contributors():
+    thead = 'n|role\n---|---\n'
+    text, creators, contributors = 'x|author\ny|other', [{'n': 'x'}], [{'n': 'y', 'type': 'Other'}]
+    res = get_creators_and_contributors(thead + text)
+    assert creators, contributors == res
+
+    res = get_creators_and_contributors(thead + text.replace('other', 'unknown'), strict=False)
+    assert creators, contributors == res

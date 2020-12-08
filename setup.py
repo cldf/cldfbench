@@ -26,7 +26,7 @@ setup(
     install_requires=[
         'csvw>=1.5.6',
         'cldfcatalog>=1.3',
-        'clldutils>=3.5.2',
+        'clldutils>=3.6.0',
         'pycldf>=1.8.2',
         'termcolor',
         'requests',

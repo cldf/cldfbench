@@ -4,6 +4,7 @@ import pathlib
 import logging
 
 import pytest
+from clldutils.jsonlib import load
 
 from cldfbench import __main__ as cli
 
@@ -73,6 +74,12 @@ def test_readme(tmpds, tmpdir):
 def test_ci(tmpds, tmpdir, capsys):
     _main('ci --test ' + tmpds)
     assert pathlib.Path(str(tmpdir)).joinpath('.github').exists()
+
+
+def test_zenodo(tmpds, tmpdir):
+    _main('zenodo --communities clld ' + tmpds)
+    res = load(pathlib.Path(str(tmpdir)).joinpath('.zenodo.json'))
+    assert all(k in res for k in 'description creators contributors communities'.split())
 
 
 def test_ls(capsys, tmpds):
