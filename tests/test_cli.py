@@ -70,6 +70,11 @@ def test_readme(tmpds, tmpdir):
     assert pathlib.Path(str(tmpdir)).joinpath('README.md').exists()
 
 
+def test_ci(tmpds, tmpdir, capsys):
+    _main('ci --test ' + tmpds)
+    assert pathlib.Path(str(tmpdir)).joinpath('.github').exists()
+
+
 def test_ls(capsys, tmpds):
     with pytest.raises(SystemExit):
         _main('ls _ --entry-point abc')

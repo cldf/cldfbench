@@ -196,6 +196,9 @@ class Dataset(object):
         return NOOP
 
     def _cmd_readme(self, args):
+        #
+        # FIXME: add CLDF build badge!?
+        #
         if self.metadata:
             self.dir.joinpath('README.md').write_text(self.cmd_readme(args), encoding='utf8')
 
