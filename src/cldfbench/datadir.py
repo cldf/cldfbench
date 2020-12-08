@@ -53,8 +53,7 @@ class DataDir(type(pathlib.Path())):
     def read(self, fname, normalize=None, encoding='utf8'):
         if not normalize:
             return self._path(fname).read_text(encoding=encoding)
-        return unicodedata.normalize(
-                normalize, self._path(fname).read_text(encoding=encoding))
+        return unicodedata.normalize(normalize, self._path(fname).read_text(encoding=encoding))
 
     def write(self, fname, text, encoding='utf8'):
         self._path(fname).write_text(text, encoding=encoding)
@@ -65,14 +64,11 @@ class DataDir(type(pathlib.Path())):
             return list(dsv.reader(self._path(fname), **kw))
         if kw.get('dicts'):
             return [collections.OrderedDict(
-                        [(
-                            k, unicodedata.normalize(normalize, v)
-                            ) for k, v in row.items()]
-                        ) for row in dsv.reader(self._path(fname), **kw)]
+                [(k, unicodedata.normalize(normalize, v)) for k, v in row.items()]
+            ) for row in dsv.reader(self._path(fname), **kw)]
         else:
-            return [[
-                unicodedata.normalize(normalize, k) for k in row
-                ] for row in dsv.reader(self._path(fname), **kw)]
+            return [[unicodedata.normalize(normalize, k) for k in row]
+                    for row in dsv.reader(self._path(fname), **kw)]
 
     def write_csv(self, fname, rows, **kw):
         with dsv.UnicodeWriter(self._path(fname), **kw) as writer:
