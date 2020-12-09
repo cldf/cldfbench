@@ -387,7 +387,10 @@ class Metadata(object):
         Factory method, called when instantiating a `Dataset` object.
         """
         with fname.open('r', encoding='utf-8') as fp:
-            return cls(**json.load(fp))
+            try:
+                return cls(**json.load(fp))
+            except json.decoder.JSONDecodeError as e:  # pragma: no cover
+                raise ValueError('Invalid JSON file: {}\n{}'.format(fname.resolve(), e))
 
     def write(self, fname):
         with fname.open('w', encoding='utf-8') as fp:
