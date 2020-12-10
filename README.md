@@ -42,11 +42,19 @@ published before. In particular we want to delineate clearly
 `cldfbench` can be installed via `pip` - preferably in a 
 [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - running
 ```shell script
-pip install cldfbench[excel]
+pip install cldfbench
 ```
 
-Note: The `[excel]` [extra specification](https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies) 
-will also install support for reading spreadsheet data.
+`cldfbench` provides some functionality that relies on python
+packages which are not needed for the core functionality. These are specified as [extras](https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies) and can be installed using syntax like
+```shell
+pip install cldfbench[<extras>]
+```
+where `<extras>` is a comma-separated list of names from the following list:
+- `excel`: support for reading spreadsheet data.
+- `glottolog`: support to access [Glottolog data](https://github.com/glottolog/glottolog).
+- `concepticon`: support to access [Concepticon data](https://github.com/concepticon/concepticon-data).
+- `clts`: support to access [CLTS data](https://github.com/cldf-clts/clts).
 
 
 ## The command line interface `cldfbench`

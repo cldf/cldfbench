@@ -39,6 +39,9 @@ setup(
             'openpyxl; python_version > "3.5"', 
             'xlrd',
         ],
+        'glottolog': ['pyglottolog'],  # Access the Glottolog catalog.
+        'concepticon': ['pyconcepticon'],  # Access the Concepticon catalog.
+        'clts': ['pyclts'],  # Access the CLTS catalog.
         'dev': ['flake8', 'wheel', 'twine'],
         'test': [
             'pytest>=5',
