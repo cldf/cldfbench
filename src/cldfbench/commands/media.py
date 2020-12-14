@@ -38,7 +38,7 @@ as compressed folder *{media}.zip*.
 
 The {media} files are structured into separate folders named by the first two characters of the file name.
 Each individual {media} file is named according to the ID specified in the file
-[media.csv]({{git_url}}/blob/master/cldf/media.csv) whose (filtered) version is part of this ZIP archive
+[media.csv]({git_url}/blob/master/cldf/media.csv) whose (filtered) version is part of this ZIP archive
 containing the additional column *local_path*.
 
 {license}
@@ -150,15 +150,11 @@ def run(args):
         media_dir.mkdir(exist_ok=True)
         media = []
 
-    cnt = 0
     used_file_extensions = set()
     with UnicodeWriter(media_dir / 'media.csv') as w:
         for i, row in enumerate(tqdm.tqdm([r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
             url = ds_cldf.get_row_url('media.csv', row)
             f_ext = url.split('.')[-1]
-            cnt += 1
-            if cnt > 500:
-                break
             if (mime_types is None) or f_ext in mime_types\
                     or any(row['mimetype'].startswith(x) for x in mime_types):
                 if args.list:
