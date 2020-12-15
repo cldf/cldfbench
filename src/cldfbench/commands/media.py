@@ -7,13 +7,13 @@ General workflow:
  (2) call cldfbench media
        to download all media files
      or
-     call cldfbench media --mimetypes foo,bar
+     call cldfbench media --mimetype foo,bar
        to download only those media files which matches mimetypes
-       - possible filter are:
-         -- file extentions like wav, mp3, pdf, ...
-         -- mimetypes like audio/ogg, audio/x-wav, application/pdf, ...
-         -- mimetype classes like audio/, video/, ...
- (3) call cldfbench media --create-release --parent-doi {--mimetypes foo,bar}
+       - possible filter(s) could be:
+         -- file extentions like wav,mp3,pdf, ...
+         -- mimetypes like audio/ogg,audio/x-wav,application/pdf, ...
+         -- mimetype classes like audio/,video/, ...
+ (3) call cldfbench media --create-release --parent-doi {--mimetype foo,bar}
        {to download and} create the release directory with the zipped media files,
        a README.md and zenodo.json
        - step (2) and (3) can be combined
