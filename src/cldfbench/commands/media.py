@@ -11,11 +11,10 @@ import subprocess
 import threading
 import time
 import tqdm
+import zenodoclient
 import zipfile
 
-
 from urllib.request import urlretrieve
-from csvw.dsv import UnicodeWriter
 
 from cldfbench.cli_util import add_dataset_spec, get_dataset
 from cldfbench.datadir import DataDir
@@ -24,12 +23,16 @@ from clldutils import jsonlib
 from clldutils.clilib import PathType
 from clldutils.misc import format_size, nfilter
 from clldutils.path import md5, git_describe
+from csvw.dsv import UnicodeWriter
+from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
+from zenodoclient.models import PUBLISHED
 
 
 MEDIA = 'media'
 ZENODO_FILE_NAME = 'zenodo.json'
 COMMUNITIES = ['lexibank']
-LISENCE = "This dataset is licensed under {0}."
+LISENCE = 'This dataset is licensed under {0}.'
+INDEX_CSV = 'index.csv'
 
 README = """## {title}
 
@@ -65,7 +68,7 @@ def register(parser):
     )
     parser.add_argument(
         '-o', '--out',
-        help='Directory to which to download the media files.',
+        help='Directory to which to download the media files and to create the to be released data.',
         type=PathType(type='dir'),
         default=pathlib.Path('.')
     )
@@ -77,19 +80,27 @@ def register(parser):
     parser.add_argument(
         '-p', '--parent-doi',
         default='',
-        help='DOI to which this release refers - format 10.5281/zenodo.4309141',
+        help='DOI to which this release refers (format 10.5281/zenodo.1234567)',
     )
     parser.add_argument(
         '--create-release',
-        help="Switch to create ID_{0} directory containing {0}.zip, README.md and zenodo.json for releasing on zenodo.".format(MEDIA),
+        help='Switch to create ID_{0} directory containing {0}.zip, README.md and {1} for releasing on zenodo.'.format(
+            MEDIA, ZENODO_FILE_NAME),
         action='store_true',
         default=False,
     )
     parser.add_argument(
         '--update-zenodo',
-        help="Deposit ID to update metadata by using ID_{0}/zendo.json.".format(MEDIA),
+        help="Deposit ID (number after DOI's last slash) to update metadata by using ID_{0}/{1}.".format(
+            MEDIA, ZENODO_FILE_NAME),
         required=False,
         default=None,
+    )
+    parser.add_argument(
+        '--debug',
+        help='Work with max. 500 media files and with sandbox.zenodo for testing only',
+        action='store_true',
+        default=False,
     )
 
 
@@ -133,10 +144,23 @@ def run(args):
 
     ds = get_dataset(args)
     ds_cldf = ds.cldf_reader()
+    release_dir = args.out / '{0}_{1}'.format(ds.id, MEDIA)
 
     if ds_cldf.get('media.csv', None) is None:
         args.log.error('Dataset has no media.csv')
         return
+    if args.parent_doi and not Zenodo.DOI_PATTERN.match(args.parent_doi):
+        args.log.error('Invalid passed DOI')
+        return
+    if args.update_zenodo:
+        if not release_dir.exists():
+            args.log.error('"{0}" not found -- run --create-release first?'.format(
+                release_dir))
+            return
+        if not (release_dir / ZENODO_FILE_NAME).exists():
+            args.log.error('"{0}" not found -- run --create-release first?'.format(
+                release_dir / ZENODO_FILE_NAME))
+            return
 
     mime_types = None
     if args.mimetype:
@@ -151,10 +175,12 @@ def run(args):
         media = []
 
     used_file_extensions = set()
-    with UnicodeWriter(media_dir / 'media.csv') as w:
+    with UnicodeWriter(media_dir / INDEX_CSV) as w:
         for i, row in enumerate(tqdm.tqdm([r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
             url = ds_cldf.get_row_url('media.csv', row)
             f_ext = url.split('.')[-1]
+            if args.debug and i > 500:
+                break
             if (mime_types is None) or f_ext in mime_types\
                     or any(row['mimetype'].startswith(x) for x in mime_types):
                 if args.list:
@@ -167,7 +193,7 @@ def run(args):
                     d.mkdir(exist_ok=True)
                     fn = '.'.join([row['ID'], f_ext])
                     target = d / fn
-                    row['local_path'] = str(target)
+                    row['local_path'] = pathlib.Path(row['ID'][:2]) / fn
                     if i == 0:
                         w.writerow(row)
                     else:
@@ -186,14 +212,12 @@ def run(args):
         for t in download_threads:
             t.join()
 
-    release_dir = args.out / '{0}_{1}'.format(ds.id, MEDIA)
-
     if args.create_release:
         assert media_dir.exists(), 'No folder "{0}" found in {1}'.format(MEDIA, media_dir.resolve())
 
         release_dir.mkdir(exist_ok=True)
 
-        media.append(media_dir / 'media.csv')
+        media.append(media_dir / INDEX_CSV)
 
         try:
             zipf = zipfile.ZipFile(
@@ -255,7 +279,7 @@ def run(args):
                     'scheme': 'url', 'identifier': ds.metadata.url, 'relation': 'isAlternateIdentifier'})
 
             formats = ', '.join(sorted(used_file_extensions))
-            descr = '<br />' + ds.metadata.description if ds.metadata.description else ''
+            descr = '<br /><br />' + ds.metadata.description if ds.metadata.description else ''
             md['description'] = html.escape(DESCRIPTION.format(
                 git_url=git_url,
                 url=ds.metadata.url if ds.metadata.url else '',
@@ -277,3 +301,30 @@ def run(args):
                 license=license_md,
                 formats=' ({0})'.format(formats) if formats else '',
                 media=MEDIA))
+
+    if args.update_zenodo:
+
+        md = {}
+        md.update(jsonlib.load(release_dir / zenodo_file_name))
+
+        if args.debug:
+            api_url = API_URL_SANDBOX
+            access_token = os.environ.get('ZENODO_SANDBOX_ACCESS_TOKEN')
+        else:
+            api_url = API_URL
+            access_token = ACCESS_TOKEN
+        zenodo_url = api_url.replace('api/', '')
+
+        args.log.info('Updating Deposit ID {0} on {1} with:'.format(args.update_zenodo, zenodo_url))
+        api = Zenodo(api_url=api_url, access_token=access_token)
+        rec = api.record_from_id('{0}record/{1}'.format(zenodo_url, args.update_zenodo))
+        args.log.info('  DOI:   ' + rec.metadata.doi)
+        args.log.info('  Title: ' + rec.metadata.title)
+        args.log.info('  Date:  ' + rec.metadata.publication_date)
+        args.log.info('  Files: ' + ', '.join([f.key for f in rec.files]))
+        p = input("Proceed? [y/N]: ")
+        if p.lower() == 'y':
+            dep = api.update_deposit(args.update_zenodo, **md)
+            if dep.state != PUBLISHED:
+                api.publish_deposit(dep)
+            args.log.info('Updated successfully')

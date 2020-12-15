@@ -32,6 +32,7 @@ setup(
         'requests',
         'appdirs',
         'pytest',
+        'zenodoclient>=0.3',
     ],
     extras_require={
         'excel': [
