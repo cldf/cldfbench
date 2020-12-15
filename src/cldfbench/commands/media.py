@@ -41,7 +41,7 @@ as compressed folder *{media}.zip*.
 
 The {media} files are structured into separate folders named by the first two characters of the file name.
 Each individual {media} file is named according to the ID specified in the file
-[media.csv]({git_url}/blob/master/cldf/media.csv) whose (filtered) version is part of this ZIP archive
+[media.csv]({git_url}/blob/master/cldf/media.csv) whose (filtered) version as {index} is part of this ZIP archive
 containing the additional column *local_path*.
 
 {license}
@@ -49,7 +49,7 @@ containing the additional column *local_path*.
 
 DESCRIPTION = "{title}{formats}{supplement_to}"\
     + "{descr}"\
-    + "<br /><br />Available online at: <a href='{url}'>{url}</a>"\
+    + "{online}"\
     + "<br />GitHub repository: <a href='{git_url}'>{git_url}/tree/{version}</a>"
 
 
@@ -98,7 +98,7 @@ def register(parser):
     )
     parser.add_argument(
         '--debug',
-        help='Work with max. 500 media files and with sandbox.zenodo for testing only',
+        help='Switch to work with max. 500 media files and with sandbox.zenodo for testing ONLY',
         action='store_true',
         default=False,
     )
@@ -247,7 +247,7 @@ def run(args):
             communities = [r["identifier"] for r in md.get("communities", [])] + \
                 [c.strip() for c in nfilter(args.communities.split(','))] + \
                 COMMUNITIES
-            if communities:
+            if communities and not args.debug:
                 md['communities'] = [
                     {"identifier": community_id} for community_id in sorted(set(communities))]
             md.update(
@@ -280,14 +280,19 @@ def run(args):
 
             formats = ', '.join(sorted(used_file_extensions))
             descr = '<br /><br />' + ds.metadata.description if ds.metadata.description else ''
+            online_url, online = '', ''
+            if ds.metadata.url:
+                online_url = ds.metadata.url
+                online = "<br /><br />Available online at: <a href='{0}'>{0}</a>".format(online_url)
             md['description'] = html.escape(DESCRIPTION.format(
                 git_url=git_url,
-                url=ds.metadata.url if ds.metadata.url else '',
+                url=online_url,
                 version=version_v,
                 formats=' ({0})'.format(formats) if formats else '',
                 title=md['title'],
                 supplement_to=supplement_to,
-                descr=descr))
+                descr=descr,
+                online=online))
 
             license_md = ''
             if ds.metadata.zenodo_license:
@@ -300,12 +305,13 @@ def run(args):
                 ds_title=ds.metadata.title,
                 license=license_md,
                 formats=' ({0})'.format(formats) if formats else '',
-                media=MEDIA))
+                media=MEDIA,
+                index=INDEX_CSV))
 
     if args.update_zenodo:
 
         md = {}
-        md.update(jsonlib.load(release_dir / zenodo_file_name))
+        md.update(jsonlib.load(release_dir / ZENODO_FILE_NAME))
 
         if args.debug:
             api_url = API_URL_SANDBOX
