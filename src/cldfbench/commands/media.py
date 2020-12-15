@@ -23,7 +23,7 @@ General workflow:
        - it is necessary to log in via correct zenodo user and to have the corresponding access token
          in your environment
        - it is only necessary to fill in required fields with provisional data - see step (6)
- (6) call cldfbench media --upload-zenodo deposit_ID 
+ (6) call cldfbench media --upload-zenodo deposit_ID
        to update the metadata of the previous uploaded reelease
 '''
 
