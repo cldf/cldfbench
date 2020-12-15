@@ -175,7 +175,7 @@ def run(args):
         media = []
 
     used_file_extensions = set()
-    with UnicodeWriter(media_dir / INDEX_CSV) as w:
+    with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
         for i, row in enumerate(tqdm.tqdm([r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
             url = ds_cldf.get_row_url('media.csv', row)
             f_ext = url.split('.')[-1]
