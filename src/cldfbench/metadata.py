@@ -458,11 +458,13 @@ def get_creators_and_contributors(text, strict=True):
         for role in nfilter([r.strip().lower() for r in row.get('role', '').split(',')]):
             c = {k: v for k, v in row.items() if k != 'role'}
             if role in {'author', 'creator', 'maintainer'}:
-                creators.append(c)
+                if c not in creators:
+                    creators.append(c)
             else:
                 if strict:
                     c['type'] = ctypes[role]
                 else:
                     c['type'] = ctypes.get(role, 'Other')
-                contributors.append(c)
+                if c not in contributors:
+                    contributors.append(c)
     return creators, contributors
