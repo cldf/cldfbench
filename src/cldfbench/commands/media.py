@@ -1,5 +1,30 @@
 '''
-Downloads {and packs} (filtered) media files {and prepare release on Zenodo}
+Download {and pack} (filtered) media files {and prepare release on Zenodo}
+
+General workflow:
+ (1) call cldfbench media -l
+       to get an overview of all media files incl. mimetypes and sizes
+ (2) call cldfbench media
+       to download all media files
+     or
+     call cldfbench media --mimetypes foo,bar
+       to download only those media files which matches mimetypes
+       - possible filter are:
+         -- file extentions like wav, mp3, pdf, ...
+         -- mimetypes like audio/ogg, audio/x-wav, application/pdf, ...
+         -- mimetype classes like audio/, video/, ...
+ (3) call cldfbench media --create-release --parent-doi {--mimetypes foo,bar}
+       {to download and} create the release directory with the zipped media files,
+       a README.md and zenodo.json
+       - step (2) and (3) can be combined
+       - a --parent-doi is required
+ (4) check README.md and zenodo.json and modify if necessary
+ (5) upload the files media.zip and README.md to Zenodo and remember the deposit ID (number after last slash)
+       - it is necessary to log in via correct zenodo user and to have the corresponding access token
+         in your environment
+       - it is only necessary to fill in required fields with provisional data - see step (6)
+ (6) call cldfbench media --upload-zenodo deposit_ID 
+       to update the metadata of the previous uploaded reelease
 '''
 
 import collections
@@ -41,8 +66,8 @@ as compressed folder *{media}.zip*.
 
 The {media} files are structured into separate folders named by the first two characters of the file name.
 Each individual {media} file is named according to the ID specified in the file
-[media.csv]({git_url}/blob/master/cldf/media.csv) whose (filtered) version as {index} is part of this ZIP archive
-containing the additional column *local_path*.
+[media.csv]({git_url}/blob/master/cldf/media.csv). A (filtered) version of which is included as {index}
+in the *{media}.zip* file containing the additional column *local_path*.
 
 {license}
 """
@@ -80,20 +105,19 @@ def register(parser):
     parser.add_argument(
         '-p', '--parent-doi',
         default='',
-        help='DOI to which this release refers (format 10.5281/zenodo.1234567)',
+        help='DOI to which this release refers (format 10.5281/zenodo.1234567). It is required for --create-release.',
     )
     parser.add_argument(
         '--create-release',
-        help='Switch to create ID_{0} directory containing {0}.zip, README.md and {1} for releasing on zenodo.'.format(
+        help='Switch to create ID_{0} directory containing {0}.zip, README.md and {1} for releasing on zenodo. Cannot be used with --update-zenodo.'.format(
             MEDIA, ZENODO_FILE_NAME),
         action='store_true',
         default=False,
     )
     parser.add_argument(
         '--update-zenodo',
-        help="Deposit ID (number after DOI's last slash) to update metadata by using ID_{0}/{1}.".format(
+        help="Deposit ID (number after DOI's last slash) to update metadata by using ID_{0}/{1}. Cannot be used with --create-release.".format(
             MEDIA, ZENODO_FILE_NAME),
-        required=False,
         default=None,
     )
     parser.add_argument(
@@ -161,6 +185,13 @@ def run(args):
             args.log.error('"{0}" not found -- run --create-release first?'.format(
                 release_dir / ZENODO_FILE_NAME))
             return
+        if args.create_release:
+            args.log.error('You cannot create the release and update zenodo at the same time.')
+            return
+    if args.create_release:
+        if not args.parent_doi:
+            args.log.error('The corresponding DOI is required (via --parent-doi).')
+            return
 
     mime_types = None
     if args.mimetype:
@@ -174,33 +205,34 @@ def run(args):
         media_dir.mkdir(exist_ok=True)
         media = []
 
-    used_file_extensions = set()
-    with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
-        for i, row in enumerate(tqdm.tqdm([r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
-            url = ds_cldf.get_row_url('media.csv', row)
-            f_ext = url.split('.')[-1]
-            if args.debug and i > 500:
-                break
-            if (mime_types is None) or f_ext in mime_types\
-                    or any(row['mimetype'].startswith(x) for x in mime_types):
-                if args.list:
-                    m = '{0} ({1})'.format(row['mimetype'], f_ext)
-                    size[m] += int(row['size'])
-                    number.update([m])
-                else:
-                    used_file_extensions.add(f_ext.lower())
-                    d = media_dir / row['ID'][:2]
-                    d.mkdir(exist_ok=True)
-                    fn = '.'.join([row['ID'], f_ext])
-                    target = d / fn
-                    row['local_path'] = pathlib.Path(row['ID'][:2]) / fn
-                    if i == 0:
-                        w.writerow(row)
+    if not args.update_zenodo:
+        used_file_extensions = set()
+        with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
+            for i, row in enumerate(tqdm.tqdm([r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
+                url = ds_cldf.get_row_url('media.csv', row)
+                f_ext = url.split('.')[-1]
+                if args.debug and i > 500:
+                    break
+                if (mime_types is None) or f_ext in mime_types\
+                        or any(row['mimetype'].startswith(x) for x in mime_types):
+                    if args.list:
+                        m = '{0} ({1})'.format(row['mimetype'], f_ext)
+                        size[m] += int(row['size'])
+                        number.update([m])
                     else:
-                        w.writerow(row.values())
-                    media.append(target)
-                    if (not target.exists()) or md5(target) != row['ID']:
-                        _create_download_thread(url, target)
+                        used_file_extensions.add(f_ext.lower())
+                        d = media_dir / row['ID'][:2]
+                        d.mkdir(exist_ok=True)
+                        fn = '.'.join([row['ID'], f_ext])
+                        target = d / fn
+                        row['local_path'] = pathlib.Path(row['ID'][:2]) / fn
+                        if i == 0:
+                            w.writerow(row)
+                        else:
+                            w.writerow(row.values())
+                        media.append(target)
+                        if (not target.exists()) or md5(target) != row['ID']:
+                            _create_download_thread(url, target)
 
     if args.list:
         for k, v in size.most_common():
