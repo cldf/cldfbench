@@ -355,11 +355,19 @@ def run(args):
 
         args.log.info('Updating Deposit ID {0} on {1} with:'.format(args.update_zenodo, zenodo_url))
         api = Zenodo(api_url=api_url, access_token=access_token)
-        rec = api.record_from_id('{0}record/{1}'.format(zenodo_url, args.update_zenodo))
-        args.log.info('  DOI:   ' + rec.metadata.doi)
-        args.log.info('  Title: ' + rec.metadata.title)
-        args.log.info('  Date:  ' + rec.metadata.publication_date)
-        args.log.info('  Files: ' + ', '.join([f.key for f in rec.files]))
+        try:
+            rec = api.record_from_id('{0}record/{1}'.format(zenodo_url, args.update_zenodo))
+        except Exception as e:
+            args.log.error('Check connection and credentials for accessing Zenodo.\n{0}'.format(e))
+            return
+        latest_version = rec.links['latest'].split('/')[-1]
+        if latest_version != args.update_zenodo:
+            args.log.warn('Passed deposit ID does not refer to latest version {0}!'.format(latest_version))
+        args.log.info('  DOI:     ' + rec.metadata.doi)
+        args.log.info('  Title:   ' + rec.metadata.title)
+        args.log.info('  Version: ' + rec.metadata.version)
+        args.log.info('  Date:    ' + rec.metadata.publication_date)
+        args.log.info('  Files:   ' + ', '.join([f.key for f in rec.files]))
         p = input("Proceed? [y/N]: ")
         if p.lower() == 'y':
             dep = api.update_deposit(args.update_zenodo, **md)
