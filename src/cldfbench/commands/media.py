@@ -35,8 +35,6 @@ import pathlib
 import subprocess
 import threading
 import time
-import tqdm
-import zenodoclient
 import zipfile
 
 from urllib.request import urlretrieve
@@ -51,6 +49,7 @@ from clldutils.path import md5, git_describe
 from csvw.dsv import UnicodeWriter
 from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
 from zenodoclient.models import PUBLISHED
+import tqdm
 
 
 MEDIA = 'media'
