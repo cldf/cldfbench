@@ -45,7 +45,7 @@ from cldfbench.cli_util import add_dataset_spec, get_dataset
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import get_creators_and_contributors
 from clldutils import jsonlib
-from clldutils.clilib import PathType
+from clldutils.clilib import PathType, ParserError
 from clldutils.misc import format_size, nfilter
 from clldutils.path import md5, git_describe
 from csvw.dsv import UnicodeWriter
@@ -56,26 +56,23 @@ from zenodoclient.models import PUBLISHED
 MEDIA = 'media'
 ZENODO_FILE_NAME = 'zenodo.json'
 COMMUNITIES = ['lexibank']
-LISENCE = 'This dataset is licensed under {0}.'
+LICENCE = 'This dataset is licensed under {0}.'
 INDEX_CSV = 'index.csv'
 
 README = """## {title}
 
-This dataset contains the {media} files{formats} of the project [{ds_title}]({git_url})
+Supplement to dataset \"{ds_title}\" ({doi}) containing the {media} files{formats}
 as compressed folder *{media}.zip*.
 
 The {media} files are structured into separate folders named by the first two characters of the file name.
-Each individual {media} file is named according to the ID specified in the file
-[media.csv]({git_url}/blob/master/cldf/media.csv). A (filtered) version of which is included as {index}
+Each individual {media} file is named according to the ID specified in the file *cldf/media.csv*.
+A (filtered) version of which is included as {index}
 in the *{media}.zip* file containing the additional column *local_path*.
 
 {license}
 """
 
-DESCRIPTION = "{title}{formats}{supplement_to}"\
-    + "{descr}"\
-    + "{online}"\
-    + "<br />GitHub repository: <a href='{git_url}'>{git_url}/tree/{version}</a>"
+DESCRIPTION = "{title}{formats}{supplement_to} {descr} {online}"
 
 
 def register(parser):
@@ -144,26 +141,6 @@ def _create_download_thread(url, target):
     download_threads.append(download_thread)
 
 
-def _git_repo_url(dir_, git_command='git'):
-    dir_ = pathlib.Path(dir_)
-    if not dir_.exists():
-        raise ValueError('cannot get repo data of non-existent directory')
-    dir_ = dir_.resolve()
-    cmd = [git_command, '--git-dir=%s' % dir_.joinpath('.git'), 'config', '--get', 'remote.origin.url']
-    try:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        if p.returncode == 0:
-            res = stdout.strip()  # pragma: no cover
-        else:
-            raise ValueError(stderr)
-    except (ValueError, FileNotFoundError):
-        res = dir_.name
-    if not isinstance(res, str):
-        res = res.decode('utf8')
-    return res.replace('.git', '')
-
-
 def run(args):
 
     ds = get_dataset(args)
@@ -172,26 +149,26 @@ def run(args):
 
     if ds_cldf.get('media.csv', None) is None:
         args.log.error('Dataset has no media.csv')
-        return
+        raise ParserError
     if args.parent_doi and not Zenodo.DOI_PATTERN.match(args.parent_doi):
         args.log.error('Invalid passed DOI')
-        return
+        raise ParserError
     if args.update_zenodo:
         if not release_dir.exists():
             args.log.error('"{0}" not found -- run --create-release first?'.format(
                 release_dir))
-            return
+            raise ParserError
         if not (release_dir / ZENODO_FILE_NAME).exists():
             args.log.error('"{0}" not found -- run --create-release first?'.format(
                 release_dir / ZENODO_FILE_NAME))
-            return
+            raise ParserError
         if args.create_release:
             args.log.error('You cannot create the release and update zenodo at the same time.')
-            return
+            raise ParserError
     if args.create_release:
         if not args.parent_doi:
             args.log.error('The corresponding DOI is required (via --parent-doi).')
-            return
+            raise ParserError
 
     mime_types = None
     if args.mimetype:
@@ -267,7 +244,7 @@ def run(args):
 
         version_v = git_describe('.').split('-')[0]
         version = version_v.replace('v', '')
-        git_url = _git_repo_url('.')
+        git_url = [r for r in ds.repo.repo.remotes if r.name == 'origin'][0].url.replace('.git', '')
         with jsonlib.update(release_dir / ZENODO_FILE_NAME, indent=4, default=collections.OrderedDict()) as md:
             contribs = ds.dir / 'CONTRIBUTORS.md'
             creators, contributors = get_creators_and_contributors(
@@ -301,11 +278,8 @@ def run(args):
             if args.parent_doi:
                 md['related_identifiers'].append({
                     'scheme': 'doi', 'identifier': args.parent_doi, 'relation': 'isPartOf'})
-                supplement_to = " - Supplement to the project <a href='https://doi.org/{0}'>{1}</a> ".format(
+                supplement_to = " - Supplement to dataset <a href='https://doi.org/{0}'>{1}</a> ".format(
                     args.parent_doi, ds.metadata.title)
-            else:
-                args.log.warn('No parent DOI passed')
-                supplement_to = " - Supplement to the project {0} ".format(ds.metadata.title)
             if ds.metadata.url:
                 md['related_identifiers'].append({
                     'scheme': 'url', 'identifier': ds.metadata.url, 'relation': 'isAlternateIdentifier'})
@@ -317,9 +291,7 @@ def run(args):
                 online_url = ds.metadata.url
                 online = "<br /><br />Available online at: <a href='{0}'>{0}</a>".format(online_url)
             md['description'] = html.escape(DESCRIPTION.format(
-                git_url=git_url,
                 url=online_url,
-                version=version_v,
                 formats=' ({0})'.format(formats) if formats else '',
                 title=md['title'],
                 supplement_to=supplement_to,
@@ -329,11 +301,11 @@ def run(args):
             license_md = ''
             if ds.metadata.zenodo_license:
                 md['license'] = {'id': ds.metadata.zenodo_license}
-                license_md = LISENCE.format(ds.metadata.zenodo_license)
+                license_md = LICENCE.format(ds.metadata.zenodo_license)
 
             DataDir(release_dir).write('README.md', README.format(
                 title=md['title'],
-                git_url=git_url,
+                doi='https://doi.org/{0}'.format(args.parent_doi),
                 ds_title=ds.metadata.title,
                 license=license_md,
                 formats=' ({0})'.format(formats) if formats else '',
