@@ -147,7 +147,7 @@ def run(args):
     ds_cldf = ds.cldf_reader()
     release_dir = args.out / '{0}_{1}'.format(ds.id, MEDIA)
 
-    if ds_cldf.get('media.csv', None) is None:
+    if ds_cldf.get('media.csv', None) is None:  # pragma: no cover
         args.log.error('Dataset has no media.csv')
         raise ParserError
     if args.parent_doi and not Zenodo.DOI_PATTERN.match(args.parent_doi):
@@ -205,8 +205,7 @@ def run(args):
                         row['local_path'] = pathlib.Path(row['ID'][:2]) / fn
                         if i == 0:
                             w.writerow(row)
-                        else:
-                            w.writerow(row.values())
+                        w.writerow(row.values())
                         media.append(target)
                         if (not target.exists()) or md5(target) != row['ID']:
                             _create_download_thread(url, target)
