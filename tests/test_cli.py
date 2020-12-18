@@ -7,6 +7,7 @@ import pytest
 from clldutils.jsonlib import load
 
 from cldfbench import __main__ as cli
+from cldfbench.commands.media import MEDIA, ZENODO_FILE_NAME, INDEX_CSV
 
 
 @pytest.fixture
@@ -15,6 +16,14 @@ def tmpds(fixtures_dir, tmpdir):
         if p.is_file():
             shutil.copy(str(p), str(tmpdir.join(p.name)))
     return str(tmpdir.join('module.py'))
+
+
+@pytest.fixture
+def tmpds_media(fixtures_dir, tmpdir):
+    for p in fixtures_dir.iterdir():
+        if p.is_file():
+            shutil.copy(str(p), str(tmpdir.join(p.name)))
+    return str(tmpdir.join('module_media.py'))
 
 
 def _main(cmd, **kw):
@@ -183,3 +192,44 @@ def test_check(tmpds, tmpdir):
 """, encoding='utf8')
     # Optional metadata is missing:
     assert _main('check ' + tmpds, log=logging.getLogger(__name__)) == 0
+
+
+def test_media(tmpds_media, tmpdir, glottolog_dir, capsys, mocker):
+
+    tmppath = pathlib.Path(str(tmpdir))
+    releasedir = pathlib.Path('thing_{}'.format(MEDIA))
+    zipfile_name = pathlib.Path('{}.zip'.format(MEDIA))
+    wav_name = '12345.wav'
+
+    class Requests(mocker.Mock):
+        d = tmppath / MEDIA
+        # due to threading
+        d.mkdir(exist_ok=True)
+        (d / wav_name[:2]).mkdir(exist_ok=True)
+        shutil.copy(str(tmpdir.join('test.zip')), str(d / wav_name[:2] / wav_name))
+
+    mocker.patch('cldfbench.commands.media.urlretrieve', Requests())
+
+    _main('makecldf ' + tmpds_media + ' --glottolog ' + str(glottolog_dir))
+
+    _main('media -l ' + tmpds_media)
+    capturedout = capsys.readouterr().out
+    assert 'application/pdf' in capturedout and 'audio/x-wav' in capturedout
+
+    _main('media -l -m wav ' + tmpds_media)
+    capturedout = capsys.readouterr().out
+    assert 'application/pdf' not in capturedout
+
+    with pytest.raises(SystemExit):
+        _main('media -m wav --create-release -p 10.5072/zenodo.710757 ' + tmpds_media)
+    with pytest.raises(SystemExit):
+        _main('media --create-release --update-zendo ' + tmpds_media)
+    with pytest.raises(SystemExit):
+        _main('media --create-release ' + tmpds_media)
+
+    _main('media -o ' + str(tmppath) + ' -m wav --create-release -p 10.5281/zenodo.4350882 ' + tmpds_media)
+    assert (tmppath / MEDIA / INDEX_CSV).exists()
+    assert (tmppath / MEDIA / wav_name[:2] / wav_name).exists()
+    assert (tmppath / releasedir / zipfile_name).exists()
+    assert (tmppath / releasedir / 'README.md').exists()
+    assert (tmppath / releasedir / ZENODO_FILE_NAME).exists()
