@@ -232,7 +232,7 @@ def run(args):
                 str(release_dir / '{0}.zip'.format(MEDIA)), 'w', zipfile.ZIP_DEFLATED)
             fp = args.out
             for f in tqdm.tqdm(media, desc='Creating {0}.zip'.format(MEDIA)):
-                zipf.write(str(f), str(os.path.relpath(f, fp)))
+                zipf.write(str(f), str(os.path.relpath(str(f), str(fp))))
             zipf.close()
         except Exception as e:
             args.log.error(e)
