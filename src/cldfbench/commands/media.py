@@ -37,6 +37,7 @@ import threading
 import time
 import zipfile
 
+from datetime import datetime
 from urllib.request import urlretrieve
 
 from cldfbench.cli_util import add_dataset_spec, get_dataset
@@ -264,6 +265,7 @@ def run(args):
                     'access_right': 'open',
                     'keywords': sorted(set(md.get('keywords', []) + ['linguistics'])),
                     'upload_type': 'dataset',
+                    'publication_date': datetime.today().strftime('%Y-%m-%d'),
                     'version': version,
                     'related_identifiers': [
                         {
