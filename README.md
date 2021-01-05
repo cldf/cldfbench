@@ -2,7 +2,6 @@
 Tooling to create CLDF datasets from existing data
 
 [![Build Status](https://github.com/cldf/cldfbench/workflows/tests/badge.svg)](https://github.com/cldf/cldfbench/actions?query=workflow%3Atests)
-[![codecov](https://codecov.io/gh/cldf/cldfbench/branch/master/graph/badge.svg)](https://codecov.io/gh/cldf/cldfbench)
 [![PyPI](https://img.shields.io/pypi/v/cldfbench.svg)](https://pypi.org/project/cldfbench)
 
 
