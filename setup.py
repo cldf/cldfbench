@@ -37,8 +37,9 @@ setup(
     extras_require={
         'excel': [
             'openpyxl<3.0.1; python_version <= "3.5"', 
-            'openpyxl; python_version > "3.5"', 
-            'xlrd',
+            'openpyxl; python_version > "3.5"',
+            'xlrd<2; python_version <= "3.5"',
+            'xlrd>=; python_version > "3.5"',
         ],
         'glottolog': ['pyglottolog'],  # Access the Glottolog catalog.
         'concepticon': ['pyconcepticon'],  # Access the Concepticon catalog.
@@ -52,8 +53,9 @@ setup(
             'pyglottolog>=3.2.2',
             'pyconcepticon',
             'openpyxl<3.0.1; python_version <= "3.5"', 
-            'openpyxl; python_version > "3.5"', 
-            'xlrd',
+            'openpyxl; python_version > "3.5"',
+            'xlrd<2; python_version <= "3.5"',
+            'xlrd>=; python_version > "3.5"',
         ],
     },
     classifiers=[

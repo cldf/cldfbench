@@ -95,7 +95,12 @@ class DataDir(type(pathlib.Path())):
         fname = self._path(fname)
         res = {}
         outdir = outdir or self
-        wb = xlrd.open_workbook(str(fname))
+        try:
+            wb = xlrd.open_workbook(str(fname))
+        except xlrd.biffh.XLRDError as e:
+            if 'xlsx' in str(e):
+                raise ValueError('To read xlsx files, call xlsx2csv!')
+            raise  # pragma: no cover
         for sname in wb.sheet_names():
             sheet = wb.sheet_by_name(sname)
             if sheet.nrows:

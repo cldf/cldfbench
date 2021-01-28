@@ -1,3 +1,4 @@
+import sys
 import shutil
 
 import pytest
@@ -44,6 +45,10 @@ def test_datadir_xml(datadir):
 def test_datadir_excel(datadir):
     res = datadir.xls2csv(datadir / 'test.xls')
     assert res['Sheet2'].stem == 'test.Sheet2'
+
+    if sys.version_info >= (3, 6):
+        with pytest.raises(ValueError):
+            datadir.xls2csv(datadir / 'test.xlsx')
 
     datadir.xlsx2csv(datadir / 'test.xlsx')
     data = datadir.read_csv('test.Sheet2.csv')
