@@ -79,11 +79,11 @@ def main(args=None, catch_all=False, parsed_args=None, log=None):
         except KeyboardInterrupt:  # pragma: no cover
             return 0
         except ParserError as e:
-            print(e)
+            print(termcolor.colored('ERROR: {}\n'.format(e), 'red', attrs={'bold'}))
             return main([args._command, '-h'])
         except Exception as e:
             if catch_all:  # pragma: no cover
-                print(e)
+                print(termcolor.colored('ERROR: {}\n'.format(e), 'red', attrs={'bold'}))
                 return 1
             raise
 
