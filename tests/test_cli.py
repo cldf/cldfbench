@@ -195,20 +195,19 @@ def test_check(tmpds, tmpdir):
 
 
 def test_media(tmpds_media, tmpdir, glottolog_dir, capsys, mocker):
-
     tmppath = pathlib.Path(str(tmpdir))
     releasedir = pathlib.Path('thing_{}'.format(MEDIA))
     zipfile_name = pathlib.Path('{}.zip'.format(MEDIA))
     wav_name = '12345.wav'
 
-    class Requests(mocker.Mock):
+    def urlretrieve(*args):
         d = tmppath / MEDIA
         # due to threading
         d.mkdir(exist_ok=True)
         (d / wav_name[:2]).mkdir(exist_ok=True)
         shutil.copy(str(tmpdir.join('test.zip')), str(d / wav_name[:2] / wav_name))
 
-    mocker.patch('cldfbench.commands.media.urlretrieve', Requests())
+    mocker.patch('cldfbench.commands.media.urlretrieve', urlretrieve)
 
     _main('makecldf ' + tmpds_media + ' --glottolog ' + str(glottolog_dir))
 

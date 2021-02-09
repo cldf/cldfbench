@@ -1,4 +1,4 @@
-'''
+"""
 Download {and pack} (filtered) media files {and prepare release on Zenodo}
 
 General workflow:
@@ -19,24 +19,21 @@ General workflow:
        - step (2) and (3) can be combined
        - a --parent-doi is required
  (4) check README.md and zenodo.json and modify if necessary
- (5) upload the files media.zip and README.md to Zenodo and remember the deposit ID (number after last slash)
-       - it is necessary to log in via correct zenodo user and to have the corresponding access token
-         in your environment
+ (5) upload the files media.zip and README.md to Zenodo and remember the deposit ID (number after
+     last slash)
+       - it is necessary to log in via correct zenodo user and to have the corresponding access
+         token in your environment
        - it is only necessary to fill in required fields with provisional data - see step (6)
  (6) call cldfbench media --upload-zenodo deposit_ID
        to update the metadata of the previous uploaded reelease
-'''
-
-import collections
-import html
-import mimetypes
+"""
 import os
-import pathlib
-import subprocess
-import threading
+import html
 import time
+import pathlib
 import zipfile
-
+import threading
+import collections
 from datetime import datetime
 from urllib.request import urlretrieve
 
@@ -64,8 +61,9 @@ README = """## {title}
 Supplement to dataset \"{ds_title}\" ({doi}) containing the {media} files{formats}
 as compressed folder *{media}.zip*.
 
-The {media} files are structured into separate folders named by the first two characters of the file name.
-Each individual {media} file is named according to the ID specified in the file *cldf/media.csv*.
+The {media} files are structured into separate folders named by the first two characters of the
+file name. Each individual {media} file is named according to the ID specified in the file
+*cldf/media.csv*.
 A (filtered) version of which is included as {index}
 in the *{media}.zip* file containing the additional column *local_path*.
 
@@ -90,7 +88,8 @@ def register(parser):
     )
     parser.add_argument(
         '-o', '--out',
-        help='Directory to which to download the media files and to create the to be released data.',
+        help='Directory to which to download the media files and to create the to be released '
+             'data.',
         type=PathType(type='dir'),
         default=pathlib.Path('.')
     )
@@ -102,19 +101,22 @@ def register(parser):
     parser.add_argument(
         '-p', '--parent-doi',
         default='',
-        help='DOI to which this release refers (format 10.5281/zenodo.1234567). It is required for --create-release.',
+        help='DOI to which this release refers (format 10.5281/zenodo.1234567). It is required '
+             'for --create-release.',
     )
     parser.add_argument(
         '--create-release',
-        help='Switch to create ID_{0} directory containing {0}.zip, README.md and {1} for releasing on zenodo. Cannot be used with --update-zenodo.'.format(
-            MEDIA, ZENODO_FILE_NAME),
+        help='Switch to create ID_{0} directory containing {0}.zip, README.md and {1} for '
+             'releasing on zenodo. Cannot be used with --update-zenodo.'.format(
+            MEDIA, ZENODO_FILE_NAME),  # noqa: E122
         action='store_true',
         default=False,
     )
     parser.add_argument(
         '--update-zenodo',
-        help="Deposit ID (number after DOI's last slash) to update metadata by using ID_{0}/{1}. Cannot be used with --create-release.".format(
-            MEDIA, ZENODO_FILE_NAME),
+        help="Deposit ID (number after DOI's last slash) to update metadata by using ID_{0}/{1}. "
+             "Cannot be used with --create-release.".format(
+            MEDIA, ZENODO_FILE_NAME),  # noqa: E122
         default=None,
     )
     parser.add_argument(
@@ -185,7 +187,8 @@ def run(args):
     if not args.update_zenodo:
         used_file_extensions = set()
         with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
-            for i, row in enumerate(tqdm.tqdm([r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
+            for i, row in enumerate(tqdm.tqdm(
+                    [r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
                 url = ds_cldf.get_row_url('media.csv', row)
                 f_ext = url.split('.')[-1]
                 if args.debug and i > 500:
@@ -244,7 +247,8 @@ def run(args):
         version_v = git_describe('.').split('-')[0]
         version = version_v.replace('v', '')
         git_url = [r for r in ds.repo.repo.remotes if r.name == 'origin'][0].url.replace('.git', '')
-        with jsonlib.update(release_dir / ZENODO_FILE_NAME, indent=4, default=collections.OrderedDict()) as md:
+        with jsonlib.update(
+                release_dir / ZENODO_FILE_NAME, indent=4, default=collections.OrderedDict()) as md:
             contribs = ds.dir / 'CONTRIBUTORS.md'
             creators, contributors = get_creators_and_contributors(
                 contribs.read_text(encoding='utf8') if contribs.exists() else '', strict=False)
@@ -278,11 +282,14 @@ def run(args):
             if args.parent_doi:
                 md['related_identifiers'].append({
                     'scheme': 'doi', 'identifier': args.parent_doi, 'relation': 'isPartOf'})
-                supplement_to = " - Supplement to dataset <a href='https://doi.org/{0}'>{1}</a> ".format(
-                    args.parent_doi, ds.metadata.title)
+                supplement_to = " - Supplement to dataset " \
+                                "<a href='https://doi.org/{0}'>{1}</a> ".format(
+                    args.parent_doi, ds.metadata.title)  # noqa: E122
             if ds.metadata.url:
                 md['related_identifiers'].append({
-                    'scheme': 'url', 'identifier': ds.metadata.url, 'relation': 'isAlternateIdentifier'})
+                    'scheme': 'url',
+                    'identifier': ds.metadata.url,
+                    'relation': 'isAlternateIdentifier'})
 
             formats = ', '.join(sorted(used_file_extensions))
             descr = '<br /><br />' + ds.metadata.description if ds.metadata.description else ''
@@ -334,7 +341,8 @@ def run(args):
             return
         latest_version = rec.links['latest'].split('/')[-1]
         if latest_version != args.update_zenodo:
-            args.log.warn('Passed deposit ID does not refer to latest version {0}!'.format(latest_version))
+            args.log.warn('Passed deposit ID does not refer to latest version {0}!'.format(
+                latest_version))
         args.log.info('  DOI:     ' + rec.metadata.doi)
         args.log.info('  Title:   ' + rec.metadata.title)
         args.log.info('  Version: ' + rec.metadata.version)
