@@ -34,7 +34,6 @@ import pathlib
 import zipfile
 import threading
 import collections
-import rfc3986
 from datetime import datetime
 from urllib.request import urlretrieve
 
@@ -49,6 +48,7 @@ from csvw.dsv import UnicodeWriter
 from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
 from zenodoclient.models import PUBLISHED
 import tqdm
+import rfc3986
 
 
 MEDIA = 'media'
