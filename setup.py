@@ -32,6 +32,7 @@ setup(
         'requests',
         'appdirs',
         'pytest',
+        'rfc3986',
         'zenodoclient>=0.3',
     ],
     extras_require={

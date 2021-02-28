@@ -48,6 +48,7 @@ from csvw.dsv import UnicodeWriter
 from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
 from zenodoclient.models import PUBLISHED
 import tqdm
+import rfc3986
 
 
 MEDIA = 'media'
@@ -190,7 +191,10 @@ def run(args):
             for i, row in enumerate(tqdm.tqdm(
                     [r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
                 url = ds_cldf.get_row_url('media.csv', row)
-                f_ext = url.split('.')[-1]
+                if isinstance(url, rfc3986.URIReference):
+                    url = url.normalize().unsplit()
+                    row['URL'] = url
+                f_ext = url.split('.')[-1].lower()
                 if args.debug and i > 500:
                     break
                 if (mime_types is None) or f_ext in mime_types\
