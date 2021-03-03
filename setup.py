@@ -22,7 +22,7 @@ setup(
         ],
     },
     platforms='any',
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     install_requires=[
         'csvw>=1.5.6',
         'cldfcatalog>=1.3',
@@ -37,10 +37,8 @@ setup(
     ],
     extras_require={
         'excel': [
-            'openpyxl<3.0.1; python_version <= "3.5"', 
-            'openpyxl; python_version > "3.5"',
-            'xlrd<2; python_version <= "3.5"',
-            'xlrd>=; python_version > "3.5"',
+            'openpyxl',
+            'xlrd>=2',
         ],
         'glottolog': ['pyglottolog'],  # Access the Glottolog catalog.
         'concepticon': ['pyconcepticon'],  # Access the Concepticon catalog.
@@ -53,10 +51,8 @@ setup(
             'coverage>=4.2',
             'pyglottolog>=3.2.2',
             'pyconcepticon',
-            'openpyxl<3.0.1; python_version <= "3.5"', 
-            'openpyxl; python_version > "3.5"',
-            'xlrd<2; python_version <= "3.5"',
-            'xlrd>=; python_version > "3.5"',
+            'openpyxl',
+            'xlrd>=2',
         ],
     },
     classifiers=[
@@ -66,10 +62,10 @@ setup(
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy'
     ],
