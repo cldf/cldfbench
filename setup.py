@@ -34,6 +34,7 @@ setup(
         'pytest',
         'rfc3986',
         'zenodoclient>=0.3',
+        'tqdm',
     ],
     extras_require={
         'excel': [
