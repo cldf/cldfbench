@@ -2,12 +2,15 @@ import shlex
 import shutil
 import pathlib
 import logging
+import argparse
 
 import pytest
 from clldutils.jsonlib import load
 
 from cldfbench import __main__ as cli
+from cldfbench import ENTRY_POINT
 from cldfbench.commands.media import MEDIA, ZENODO_FILE_NAME, INDEX_CSV
+from cldfbench.cli_util import get_cldf_dataset
 
 
 @pytest.fixture
@@ -28,6 +31,21 @@ def tmpds_media(fixtures_dir, tmpdir):
 
 def _main(cmd, **kw):
     return cli.main(shlex.split('--no-config ' + cmd), **kw)
+
+
+def test_get_cldf_dataset(tmp_path, tmpds, glottolog_dir, tmpdir):
+    vals = tmp_path.joinpath('values.csv')
+    vals.write_text('ID,Language_ID,Parameter_ID,Value\n1,1,1,1', encoding='utf8')
+    ds = get_cldf_dataset(argparse.Namespace(glob=None, entry_point=ENTRY_POINT, dataset=str(vals)))
+    assert len(list(ds['ValueTable'])) == 1
+    assert ds.module == 'StructureDataset'
+
+    _main('makecldf ' + tmpds + ' --glottolog ' + str(glottolog_dir))
+    ds = get_cldf_dataset(argparse.Namespace(
+        glob=None,
+        entry_point=ENTRY_POINT,
+        dataset=str(tmpdir.join('cldf', 'StructureDataset-metadata.json'))))
+    assert ds.module == 'StructureDataset'
 
 
 def test_help(capsys):

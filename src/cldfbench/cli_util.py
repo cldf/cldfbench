@@ -1,11 +1,18 @@
+import json
 from time import time
 
 from clldutils.clilib import ParserError
 import termcolor
 
+import pycldf
 from cldfbench import ENTRY_POINT
 from cldfbench import get_dataset as _get
 from cldfbench import get_datasets as _gets
+
+__all__ = ['DatasetNotFoundException',
+           'add_entry_point', 'add_dataset_spec', 'add_catalog_spec',
+           'get_dataset', 'get_datasets', 'get_cldf_dataset',
+           'with_dataset', 'with_datasets']
 
 
 class DatasetNotFoundException(Exception):
@@ -54,6 +61,17 @@ def get_datasets(args):
         return res
     raise ParserError(termcolor.colored(
         '\nInvalid dataset spec: <{0}> {1}\n'.format(args.entry_point, args.dataset), "red"))
+
+
+def get_cldf_dataset(args, cldf_spec=None):
+    try:
+        return get_dataset(args).cldf_reader(cldf_spec=cldf_spec)
+    except (ParserError, ModuleNotFoundError):
+        # Try to load plain (i.e. non-cldfbench-enabled) CLDF dataset.
+        try:
+            return pycldf.Dataset.from_metadata(args.dataset)
+        except json.JSONDecodeError:
+            return pycldf.Dataset.from_data(args.dataset)
 
 
 def add_catalog_spec(parser, name, with_version=True):
