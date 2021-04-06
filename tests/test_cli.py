@@ -48,6 +48,12 @@ def test_get_cldf_dataset(tmp_path, tmpds, glottolog_dir, tmpdir):
     assert ds.module == 'StructureDataset'
 
 
+def test_cldfreadme(tmp_path, tmpds, glottolog_dir):
+    _main('makecldf ' + tmpds + ' --glottolog ' + str(glottolog_dir))
+    _main('cldfreadme ' + tmpds)
+    assert '# CLDF datasets' in tmp_path.joinpath('cldf', 'README.md').read_text(encoding='utf8')
+
+
 def test_help(capsys):
     _main('')
     out, _ = capsys.readouterr()

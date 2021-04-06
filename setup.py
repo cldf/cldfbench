@@ -27,7 +27,7 @@ setup(
         'csvw>=1.5.6',
         'cldfcatalog>=1.3',
         'clldutils>=3.6.0',
-        'pycldf>=1.8.2',
+        'pycldf>=1.19.0',
         'termcolor',
         'requests',
         'appdirs',
