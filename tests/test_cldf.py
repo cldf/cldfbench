@@ -47,3 +47,11 @@ def test_cldf(tmpdir):
 
     with pytest.raises(AttributeError):
         CLDFWriter(outdir).validate()
+
+
+def test_cldf_with_dataset(ds):
+    with CLDFWriter(CLDFSpec(dir=ds.cldf_dir), dataset=ds):
+        pass
+    cldf = Dataset.from_metadata(ds.cldf_dir.joinpath('Generic-metadata.json'))
+    assert 'http://example.org/raw' in [
+        p['rdf:about'] for p in cldf.properties['prov:wasDerivedFrom']]

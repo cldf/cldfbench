@@ -6,6 +6,7 @@ import pathlib
 import attr
 from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
 from pycldf.util import pkg_path
+from cldfcatalog import Repository
 
 from cldfbench.catalogs import Catalog
 from cldfbench.util import iter_requirements
@@ -81,6 +82,15 @@ class CLDFWriter(object):
             for cat in vars(self.args).values():
                 if isinstance(cat, Catalog):
                     srcs.append(cat.json_ld())
+        # And check, whether any repositories have been "mounted" via git submodules in raw/:
+        if self.dataset and self.dataset.raw_dir.exists():
+            for p in self.dataset.raw_dir.iterdir():
+                if p.is_dir():
+                    try:
+                        repo = Repository(p)
+                    except ValueError:
+                        continue
+                    srcs.append(repo.json_ld())
         if srcs:
             self.cldf.add_provenance(wasDerivedFrom=srcs)
         reqs = [

@@ -8,26 +8,6 @@ from cldfcatalog.repository import get_test_repo
 from cldfbench.dataset import *
 
 
-@pytest.fixture()
-def ds_cls(tmpdir):
-    class Thing(Dataset):
-        id = 'this'
-        dir = pathlib.Path(
-            get_test_repo(str(tmpdir), remote_url='https://github.com/org/repo.git').working_dir)
-    return Thing
-
-
-@pytest.fixture()
-def ds(ds_cls, fixtures_dir):
-    raw = ds_cls.dir / 'raw'
-    raw.mkdir()
-    for p in fixtures_dir.glob('test.*'):
-        shutil.copy(str(p), str(raw / p.name))
-    shutil.copy(str(fixtures_dir / 'metadata.json'), str(ds_cls.dir.joinpath('metadata.json')))
-    res = ds_cls()
-    return res
-
-
 def test_get_dataset_from_path(fixtures_dir):
     ds = get_dataset(fixtures_dir / 'module.py')
     assert ds.id == 'thing'
