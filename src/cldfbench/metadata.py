@@ -433,15 +433,27 @@ class Metadata(object):
         return res
 
     def markdown(self):
-        lines = ['# {0}\n'.format(self.title or 'Dataset {0}'.format(self.id))]
+        lines = [
+            '# {0}\n'.format(self.title or 'Dataset {0}'.format(self.id)),
+            '## How to cite\n\nIf you use these data please cite',
+        ]
         if self.citation:
             lines.extend([
-                'Cite the source dataset as\n',
-                '> %s\n' % self.citation,
+                "- the original source",
+                "  > {}".format(self.citation),
+                "- the derived dataset using the DOI of the "
+                "[particular released version](releases/) you were using"
+            ])
+        else:  # pragma: no cover
+            lines.extend([
+                "this dataset using the DOI of the "
+                "[particular released version](releases/) you were using"
             ])
 
+        lines.append('\n## Description\n\n')
+
         if self.description:
-            lines.append('\n{0}\n'.format(self.description))
+            lines.append('{0}\n'.format(self.description))
 
         if self.license:
             lines.append('This dataset is licensed under a %s license\n' % self.license)
