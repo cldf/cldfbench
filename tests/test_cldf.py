@@ -1,5 +1,3 @@
-import pathlib
-
 import pytest
 
 from pycldf import Wordlist, Dataset
@@ -15,38 +13,37 @@ def test_cldf_spec_invalid():
         _ = CLDFSpec(dir='.', module='invalid')
 
 
-def test_cldf_spec(tmpdir):
-    md = pathlib.Path(str(tmpdir)) / 'md.json'
+def test_cldf_spec(tmp_path):
+    md = tmp_path / 'md.json'
     md.write_text('abc', encoding='utf8')
     with pytest.raises(ValueError):
-        _ = CLDFSpec(module=Wordlist, default_metadata_path=md, dir=str(tmpdir))
+        _ = CLDFSpec(module=Wordlist, default_metadata_path=md, dir=tmp_path)
     md.write_text('{}', encoding='utf8')
-    spec = CLDFSpec(module=Wordlist, default_metadata_path=md, dir=str(tmpdir))
+    spec = CLDFSpec(module=Wordlist, default_metadata_path=md, dir=tmp_path)
     assert issubclass(spec.cls, Dataset)
 
 
-def test_cldf(tmpdir):
+def test_cldf(tmp_path):
     with pytest.raises(AttributeError):
         _ = CLDFWriter().cldf
 
-    outdir = pathlib.Path(str(tmpdir))
-    with CLDFWriter(CLDFSpec(dir=outdir)):
+    with CLDFWriter(CLDFSpec(dir=tmp_path)):
         pass
     # The metadata was copied:
-    assert outdir.glob('*-metadata.json')
+    assert tmp_path.glob('*-metadata.json')
 
-    with CLDFWriter(CLDFSpec(dir=outdir, data_fnames=dict(ValueTable='data.csv'))) as writer:
+    with CLDFWriter(CLDFSpec(dir=tmp_path, data_fnames=dict(ValueTable='data.csv'))) as writer:
         assert writer.cldf['ValueTable']
         writer['ValueTable', 'value'].separator = '|'
         writer.objects['ValueTable'].append(
             dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
-    ds = Dataset.from_metadata(outdir / 'Generic-metadata.json')
+    ds = Dataset.from_metadata(tmp_path / 'Generic-metadata.json')
     values = list(ds['ValueTable'])
     assert len(values) == 1
     assert values[0]['Value'] == ['1', '2']
 
     with pytest.raises(AttributeError):
-        CLDFWriter(outdir).validate()
+        CLDFWriter(tmp_path).validate()
 
 
 def test_cldf_with_dataset(ds):

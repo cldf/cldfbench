@@ -1,10 +1,8 @@
-import pathlib
-
 from cldfbench.metadata import *
 
 
-def test_Metadata_read_write(tmpdir):
-    fname = pathlib.Path(str(tmpdir)) / 'md.json'
+def test_Metadata_read_write(tmp_path):
+    fname = tmp_path / 'md.json'
     md = Metadata()
     md.write(fname)
     assert Metadata.from_file(fname) == md

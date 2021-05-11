@@ -7,11 +7,11 @@ from cldfbench.datadir import *
 
 
 @pytest.fixture
-def datadir(tmpdir, fixtures_dir):
+def datadir(tmp_path, fixtures_dir):
     for p in fixtures_dir.iterdir():
         if p.is_file():
-            shutil.copy(str(p), str(tmpdir.join(p.name)))
-    return DataDir(str(tmpdir))
+            shutil.copy(p, tmp_path / p.name)
+    return DataDir(tmp_path)
 
 
 def test_get_url(mocker):
