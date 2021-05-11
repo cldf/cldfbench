@@ -21,6 +21,7 @@ Releasing cldfbench
 - Update the version number, by removing the trailing `.dev0` in:
   - `setup.py`
   - `src/cldfbench/__init__.py`
+  - `doc/conf.py`
 
 - Create the release commit:
   ```shell
@@ -52,6 +53,7 @@ Releasing cldfbench
 
   - `setup.py`
   - `src/cldfbench/__init__.py`
+  - `doc/conf.py`
 
 - Commit/push the version change:
   ```shell

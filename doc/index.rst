@@ -6,6 +6,10 @@
 cldfbench API documentation
 ===========================
 
+- `cldfbench @ GitHub <https://github.com/cldf/cldfbench>`_
+- `cldfbench @ PyPI <https://pypi/project/cldfbench>`_
+- `Issue tracker <https://github.com/cldf/cldfbench/issues>`_
+
 For installation instructions, an overview and details about
 the CLI, see
 `the README <https://github.com/cldf/cldfbench/blob/master/README.md>`_

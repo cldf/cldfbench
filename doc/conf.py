@@ -22,6 +22,7 @@ copyright = '2021, Robert Forkel'
 author = 'Robert Forkel'
 
 release = '1.6.1.dev0'
+version = '1.6.1'
 
 
 # -- General configuration ---------------------------------------------------
