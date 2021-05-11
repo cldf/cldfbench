@@ -1,10 +1,14 @@
+import argparse
 import json
+import typing
 from time import time
 
 from clldutils.clilib import ParserError
 import termcolor
 
 import pycldf
+
+import cldfbench
 from cldfbench import ENTRY_POINT
 from cldfbench import get_dataset as _get
 from cldfbench import get_datasets as _gets
@@ -27,6 +31,16 @@ def add_entry_point(parser, ep=ENTRY_POINT):
 
 
 def add_dataset_spec(parser, ep=ENTRY_POINT, multiple=False):
+    """
+    Add arguments and options to specify `cldfbench` Datasets to the CLI.
+
+    :param multiple: Flag signaling whether selection of multiple datasets should be allowed.
+
+    .. note::
+
+        This funtion is supposed to be used in tandem with :func:`get_dataset`, called in a
+        command's `run` function.
+    """
     h = "Dataset spec, either ID of installed dataset or path to python module"
     if multiple:
         h += " or simplified glob pattern (where _ is understood as *) " \
@@ -45,7 +59,12 @@ def add_dataset_spec(parser, ep=ENTRY_POINT, multiple=False):
             help="Interpret DATASET as simplified glob pattern relative to cwd.")
 
 
-def get_dataset(args):
+def get_dataset(args: argparse.Namespace) -> cldfbench.Dataset:
+    """
+    Get the `cldfbench.Dataset` specified by `args`.
+
+    :raises ParserError: If no matching dataset was found.
+    """
     ds = _get(args.dataset, ep=args.entry_point)
     if ds:
         return ds
@@ -53,7 +72,12 @@ def get_dataset(args):
         '\nInvalid dataset spec: <{0}> {1}\n'.format(args.entry_point, args.dataset), "red"))
 
 
-def get_datasets(args):
+def get_datasets(args: argparse.Namespace) -> typing.List[cldfbench.Dataset]:
+    """
+    Get the `cldfbench.Dataset` s specified by `args`.
+
+    :raises ParserError: If no matching datasets were found.
+    """
     if args.glob or args.dataset == '_':
         args.dataset = args.dataset.replace('_', '*')
     res = _gets(args.dataset, ep=args.entry_point, glob=args.glob)
@@ -63,7 +87,11 @@ def get_datasets(args):
         '\nInvalid dataset spec: <{0}> {1}\n'.format(args.entry_point, args.dataset), "red"))
 
 
-def get_cldf_dataset(args, cldf_spec=None):
+def get_cldf_dataset(args: argparse.Namespace, cldf_spec=None) -> pycldf.Dataset:
+    """
+    Get the `pycldf.Dataset` specified by `cldf_spec` for the `cldfbench.Dataset` specified by \
+    `args`.
+    """
     try:
         return get_dataset(args).cldf_reader(cldf_spec=cldf_spec)
     except (ParserError, ModuleNotFoundError):
@@ -74,7 +102,22 @@ def get_cldf_dataset(args, cldf_spec=None):
             return pycldf.Dataset.from_data(args.dataset)
 
 
-def add_catalog_spec(parser, name, with_version=True):
+def add_catalog_spec(parser: argparse.ArgumentParser, name: str, with_version: bool = True):
+    """
+    Add an option for a reference catalog (at a specific version tag) to the CLI.
+
+    :param parser: Subparser for the subcommand.
+    :param name: Option name to use for the catalog.
+    :param with_version: Flag signaling whether an option to select a version tag for the \
+    catalog should be added.
+
+    .. note::
+
+        If one of the `cldfbench.catalogs.BUILTIN_CATALOGS` is added (using its name as `name`),
+        `cldfbench` will add an initialized `cldfcatalog.Catalog` object (with entered context,
+        if a particular version was requested) as `name` to the `argparse.Namespace` passed to the
+        command's `run` function.
+    """
     parser.add_argument(
         '--' + name,
         metavar=name.upper(),
@@ -87,7 +130,17 @@ def add_catalog_spec(parser, name, with_version=True):
             default=None)
 
 
-def with_dataset(args, func, dataset=None):
+def with_dataset(args: argparse.Namespace, func: typing.Union[callable, str], dataset=None) \
+        -> typing.Any:
+    """
+    Run a callable, passing a dataset and `args` as arguments, returning it's result.
+
+    :param args: CLI arguments
+    :param func: Callable with suitable signature or `str`, in which case a method `_cmd_<name>` \
+    will be looked up on the dataset and run.
+    :param dataset: `cldfbench.Dataset` instance or `None`, in which case a dataset will be \
+    retrieved as specified by `args`.
+    """
     dataset = dataset or get_dataset(args)
     s = time()
     arg = [dataset]
@@ -103,6 +156,11 @@ def with_dataset(args, func, dataset=None):
 
 
 def with_datasets(args, func):
+    """
+    Run `func` on all datasets specified by `args`.
+
+    See :func:`with_dataset` for details.
+    """
     res = []
     for ds in get_datasets(args):
         res.append(with_dataset(args, func, dataset=ds))

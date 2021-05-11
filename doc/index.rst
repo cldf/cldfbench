@@ -3,16 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to cldfbench's API documentation!
-=========================================
+cldfbench API documentation
+===========================
+
+For installation instructions, an overview and details about
+the CLI, see
+`the README <https://github.com/cldf/cldfbench/blob/master/README.md>`_
+
+Follow the links below for documentation of the cldfbench Python API.
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    dataset
-   cldf
    catalogs
+   commands
 
 
 Indices and tables

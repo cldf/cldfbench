@@ -344,10 +344,17 @@ LICENSES = {
 class Metadata(object):
     """
     Dataset metadata is used as follows:
+
     - it is (partly) elicited when creating a new dataset directory ...
     - ... and subsequently written to the directory ...
     - ... where it may be edited ("by hand") ...
     - ... and from where it is read when initializing a `Dataset` object.
+
+    To add custom metadata fields for a dataset,
+
+    - inherit from `Metadata`,
+    - add more `attr.ib` s,
+    - register the subclass with the dataset by assigning it to `cldfbench.Dataset.metadata_cls`.
     """
     id = attr.ib(
         default=None,

@@ -4,6 +4,7 @@ import shutil
 import pathlib
 
 import attr
+import pycldf
 from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
 from pycldf.util import pkg_path
 from cldfcatalog import Repository
@@ -18,14 +19,19 @@ class CLDFWriter(object):
     """
     An object mediating writing data as proper CLDF dataset.
 
-    In particular, this class
-    - implements a context manager which upon exiting will write all objects acquired within the
-      context to disk,
-    - provides a facade for most of the relevant attributes of a `pycldf.Dataset`.
+    Implements a context manager which upon exiting will write all objects acquired within the
+    context to disk.
+
+    :ivar cldf_spec: :class:`CLDFSpec` instance, configuring the CLDF dataset written by the writer.
+    :ivar objects: `dict` of `list` s to collect the data items. Will be passed as kwargs to \
+    `pycldf.Dataset.write`.
 
     Usage:
-    >>> with Writer(cldf_spec) as writer:
-    ...     writer.objects['ValueTable'].append(...)
+
+    .. code-block:: python
+
+        >>> with Writer(cldf_spec) as writer:
+        ...     writer.objects['ValueTable'].append(...)
     """
     def __init__(self, cldf_spec=None, args=None, dataset=None, clean=True):
         """
@@ -42,15 +48,38 @@ class CLDFWriter(object):
         self._clean = clean
 
     @property
-    def cldf(self):
+    def cldf(self) -> pycldf.Dataset:
+        """
+        The `pycldf.Dataset` used to write the data.
+
+        :raises AttributeError: If accessed outside of the context managed by this writer.
+        """
         if self._cldf is None:
             raise AttributeError('Writer.cldf is only set when Writer is used in with statement!')
         return self._cldf
 
     def __getitem__(self, type_):
+        """
+        Mirrors `pycldf.Dataset.__getitem__`
+        """
         return self.cldf[type_]
 
     def __enter__(self):
+        """
+        Upon entering the writer context
+
+        - the target directory is cleaned up,
+        - the CLDF metadata is initialized and
+        - provided as attribute `cldf`.
+
+        Within the context,
+
+        - the CLDF schema can be manipulated via `CLDFWriter.cldf`, see \
+          `<https://pycldf.readthedocs.io/en/latest/dataset.html#editing-metadata-and-schema>`
+        - sources can be added, see \
+          `<https://pycldf.readthedocs.io/en/latest/dataset.html#adding-data>`
+        - data items can be appended to `self.objects`.
+        """
         if self._clean:
             self.cldf_spec.make_clean()
         self.cldf_spec.copy_metadata()
@@ -63,6 +92,9 @@ class CLDFWriter(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        When exiting the writer context, write data (and metadata) to disk.
+        """
         self.write(**self.objects)
 
     def write(self, **kw):
@@ -114,21 +146,23 @@ class CLDFWriter(object):
 class CLDFSpec(object):
     """
     Basic specification to initialize a CLDF Dataset.
+
+    :ivar dir: A directory where the CLDF data is located.
+    :ivar module: `pycldf.Dataset` subclass or name of a CLDF module
+    :ivar default_metadata_path: Path to the source file for the default metadata for a dataset.
+    :ivar metadata_fname: Filename to be used for the actual copy of the metadata.
+    :ivar data_fnames: A `dict` mapping component names to custom csv file names (which may be \
+    important if multiple different CLDF datasets are created in the same directory).
+    :ivar writer_cls: `CLDFWriter` subclass to use for writing the data.
     """
-    # A directory where the CLDF data is located.
     dir = attr.ib(converter=lambda s: pathlib.Path(s) if s else s)
-    # Dataset subclass or name of a module
     module = attr.ib(
         default='Generic',
         converter=lambda cls: getattr(cls, '__name__', cls),
         validator=attr.validators.in_([m.id for m in get_modules()])
     )
-    # Path to the source file for the default metadata for a dataset:
     default_metadata_path = attr.ib(default=None)
-    # Filename to be used for the actual copy of the metadata:
     metadata_fname = attr.ib(default=None)
-    # A `dict` mapping component names to custom csv file names (which may be important
-    # if multiple different CLDF datasets are created in the same directory):
     data_fnames = attr.ib(default=attr.Factory(dict))
     writer_cls = attr.ib(default=CLDFWriter)
 

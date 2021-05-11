@@ -1,7 +1,8 @@
-import pathlib
-import contextlib
-import zipfile
 import shutil
+import typing
+import pathlib
+import zipfile
+import contextlib
 from xml.etree import ElementTree as et
 import collections
 import unicodedata
@@ -39,6 +40,9 @@ def get_url(url, log=None, **kw):
 
 
 class DataDir(type(pathlib.Path())):
+    """
+    A `pathlib.Path` augmented with functionality to read common data formats.
+    """
     def _path(self, fname):
         """
         Interpret strings without "/" as names of files in `self`.
@@ -50,7 +54,10 @@ class DataDir(type(pathlib.Path())):
             return self / fname
         return pathlib.Path(fname)
 
-    def read(self, fname, normalize=None, encoding='utf8'):
+    def read(self, fname, normalize=None, encoding='utf8') -> str:
+        """
+        Read text data from a file.
+        """
         if not normalize:
             return self._path(fname).read_text(encoding=encoding)
         return unicodedata.normalize(normalize, self._path(fname).read_text(encoding=encoding))
@@ -59,7 +66,10 @@ class DataDir(type(pathlib.Path())):
         self._path(fname).write_text(text, encoding=encoding)
         return fname
 
-    def read_csv(self, fname, normalize=None, **kw):
+    def read_csv(self, fname, normalize=None, **kw) -> list:
+        """
+        Read CSV data from a file.
+        """
         if not normalize:
             return list(dsv.reader(self._path(fname), **kw))
         if kw.get('dicts'):
@@ -74,20 +84,27 @@ class DataDir(type(pathlib.Path())):
         with dsv.UnicodeWriter(self._path(fname), **kw) as writer:
             writer.writerows(rows)
 
-    def read_xml(self, fname, wrap=True):
+    def read_xml(self, fname, wrap=True) -> et.Element:
         xml = xmlchars(self.read(fname))
         if wrap:
             xml = '<r>{0}</r>'.format(xml)
         return et.fromstring(xml.encode('utf8'))
 
-    def read_json(self, fname, **kw):
+    def read_json(self, fname, **kw) -> typing.Union[str, list, dict]:
         return jsonlib.load(self._path(fname))
 
-    def read_bib(self, fname='sources.bib'):
+    def read_bib(self, fname='sources.bib') -> typing.List[Source]:
         bib = pybtex.database.parse_string(self.read(fname), bib_format='bibtex')
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
 
     def xls2csv(self, fname, outdir=None):
+        """
+        Dump the data from an Excel XLS file to CSV.
+
+        .. note::
+
+            Requires `cldfbench` to be installed with extra "excel".
+        """
         if not xlrd:  # pragma: no cover
             raise EnvironmentError(
                 'xls2csv is only available when cldfbench is installed with excel support\n'
@@ -112,6 +129,13 @@ class DataDir(type(pathlib.Path())):
         return res
 
     def xlsx2csv(self, fname, outdir=None):
+        """
+        Dump the data from an Excel XLSX file to CSV.
+
+        .. note::
+
+            Requires `cldfbench` to be installed with extra "excel".
+        """
         if not openpyxl:  # pragma: no cover
             raise EnvironmentError(
                 'xlsx2csv is only available when cldfbench is installed with excel support\n'
@@ -142,6 +166,17 @@ class DataDir(type(pathlib.Path())):
 
     @contextlib.contextmanager
     def temp_download(self, url, fname, log=None):
+        """
+        Context manager to use when downloaded data needs to be manipulated before storage \
+        (e.g. to anonymize it).
+
+        Usage:
+
+        .. code-block:: python
+
+            with ds.raw_dir.temp_download('http://example.org/data.txt') as p:
+                ds.raw_dir.write('data.txt', p.read_text(encoding='utf8').split('##')[0])
+        """
         p = None
         try:
             p = self.download(url, fname, log=log)
@@ -151,6 +186,9 @@ class DataDir(type(pathlib.Path())):
                 p.unlink()
 
     def download(self, url, fname, log=None, skip_if_exists=False):
+        """
+        Download data from a URL to the directory.
+        """
         p = self._path(fname)
         if p.exists() and skip_if_exists:
             return p
@@ -168,7 +206,6 @@ class DataDir(type(pathlib.Path())):
         :param url:
         :param paths:
         :param kw:
-        :return:
         """
         with self.temp_download(url, 'ds.zip', log=kw.pop('log', None)) as zipp:
             with TemporaryDirectory() as tmpdir:

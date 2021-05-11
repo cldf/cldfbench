@@ -16,6 +16,7 @@ Code to be run as subcommand in the `cldfbench` cli must comply with the followi
 
 A command's `register` function can use packaged functionality from `cldfbench.cli_util`, e.g.
 to add options for standard reference catalogs (see `cldfbench.catalogs`), or for dataset discovery.
+See [the API documentation](https://cldfbench.readthedocs.io/en/latest/commands.html) for details.
 
 
 ## Dataset specific commands

@@ -2,6 +2,7 @@
 Tooling to create CLDF datasets from existing data
 
 [![Build Status](https://github.com/cldf/cldfbench/workflows/tests/badge.svg)](https://github.com/cldf/cldfbench/actions?query=workflow%3Atests)
+[![Documentation Status](https://readthedocs.org/projects/cldfbench/badge/?version=latest)](https://cldfbench.readthedocs.io/en/latest/?badge=latest)
 [![PyPI](https://img.shields.io/pypi/v/cldfbench.svg)](https://pypi.org/project/cldfbench)
 
 
@@ -138,6 +139,7 @@ This will create the following layout (where `<ID>` stands for the chosen datase
 different, and so each dataset will have to provide its own custom code to do so.
 This custom code goes into the `cmd_makecldf` method of the `Dataset` subclass in
 the dataset's python module.
+(See also the [API documentation of `cldfbench.Dataset`](https://cldfbench.readthedocs.io/en/latest/dataset.html).)
 
 Typically, this code will make use of one or more
 [`cldfbench.CLDFSpec`](src/cldfbench/cldf.py) instances, which describes what kind of CLDF to create. A `CLDFSpec` also gives access to a
@@ -178,6 +180,9 @@ accessible in local clones of the data repository. `cldfbench` provides commands
 - `catconfig` to create the clones and make them known through a configuration file,
 - `catinfo` to get an overview of the installed catalogs and their versions,
 - `catupdate` to update local clones from the upstream repositories.
+
+See https://cldfbench.readthedocs.io/en/latest//catalogs.html for a list of reference
+catalogs which are currently supported in `cldfbench`.
 
 
 ### Curating a dataset on GitHub
