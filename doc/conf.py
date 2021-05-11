@@ -21,7 +21,7 @@ project = 'cldfbench'
 copyright = '2021, Robert Forkel'
 author = 'Robert Forkel'
 
-release = '1.7.0'
+release = '1.7.1.dev0'
 version = '1.7.0'
 
 
