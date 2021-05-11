@@ -4,6 +4,7 @@ import pathlib
 import logging
 import pkg_resources
 import importlib
+import subprocess
 from datetime import datetime
 
 from clldutils.path import sys_path
@@ -146,6 +147,10 @@ class Dataset(object):
     def etc_dir(self):
         return self.dir / 'etc'
 
+    def update_submodules(self):
+        subprocess.check_call(
+            'git -C {} submodule update --remote'.format(self.dir.resolve()), shell=True)
+
     def cldf_writer(self, args, cldf_spec=None, clean=True):
         """
         :param args:
@@ -222,7 +227,7 @@ class Dataset(object):
 
     def cmd_makecldf(self, args):
         """
-        :param args: An `argparse.Namespace` including attributes:
+        :param args: An `argparse.Namespace` including attributes: \
         - `writer`: `CLDFWriter` instance
         """
         args.log.warning('cmd_{0} not implemented for dataset {1}'.format('makecldf', self.id))
