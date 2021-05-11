@@ -7,15 +7,16 @@ Releasing cldfbench
   tox -r
   ```
 
-- Make sure statement coverage >= 99%
+- Make sure statement coverage >= 97%
 - Make sure flake8 passes:
   ```
   flake8 src
   ```
 - Make sure the docs render:
   ```shell
-  cd docs
+  cd doc
   make clean html
+  cd ..
   ```
 
 - Update the version number, by removing the trailing `.dev0` in:
