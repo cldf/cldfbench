@@ -100,9 +100,13 @@ def test_run(caplog, tmpds):
         _main('run ' + tmpds + ' raise')
 
 
-def test_readme(tmpds, tmpdir):
+def test_readme(tmpds, tmp_path, glottolog_dir, mocker):
     _main('readme ' + tmpds)
-    assert pathlib.Path(str(tmpdir)).joinpath('README.md').exists()
+    _main('makecldf ' + tmpds + ' --glottolog ' + str(glottolog_dir))
+    mocker.patch('cldfbench.dataset.build_status_badge', mocker.Mock(return_value='abc'))
+    _main('readme ' + tmpds)
+    assert tmp_path.joinpath('README.md').exists()
+    assert 'abc' in tmp_path.joinpath('README.md').read_text(encoding='utf8')
 
 
 def test_ci(tmpds, tmpdir, capsys):

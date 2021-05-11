@@ -17,6 +17,7 @@ from cldfcatalog import Repository
 from cldfbench.cldf import CLDFSpec, CLDFWriter
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
+from cldfbench.ci import build_status_badge
 
 __all__ = ['iter_datasets', 'get_dataset', 'get_datasets', 'Dataset', 'ENTRY_POINT']
 ENTRY_POINT = 'cldfbench.dataset'
@@ -161,11 +162,32 @@ class Dataset(object):
         return NOOP
 
     def _cmd_readme(self, args):
-        #
-        # FIXME: add CLDF build badge!?
-        #
         if self.metadata:
-            self.dir.joinpath('README.md').write_text(self.cmd_readme(args), encoding='utf8')
+            badge = build_status_badge(self)
+            md = self.cmd_readme(args)
+            if badge:
+                lines, title_found = [], False
+                for line in md.split('\n'):
+                    lines.append(line)
+                    if line.startswith('# ') and not title_found:
+                        title_found = True
+                        lines.extend(['', badge])
+                md = '\n'.join(lines)
+
+            section = [
+                '\n\n## CLDF Datasets\n',
+                'The following CLDF datasets are available in [{0}]({0}):\n'.format(
+                    self.cldf_dir.resolve().relative_to(self.dir.resolve())
+                )
+            ]
+            for ds in self.cldf_specs_dict.values():
+                if ds.metadata_path.exists():
+                    p = ds.metadata_path.resolve().relative_to(self.dir.resolve())
+                    section.append(
+                        '- CLDF [{0}](https://github.com/cldf/cldf/tree/master/modules/{0}) '
+                        'at [{1}]({1})'.format(ds.module, p))
+
+            self.dir.joinpath('README.md').write_text(md + '\n'.join(section), encoding='utf8')
 
     def cmd_readme(self, args: argparse.Namespace) -> str:
         """
