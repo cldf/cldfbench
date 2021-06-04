@@ -53,4 +53,7 @@ def run(args):
 
 
 def contrib(d):
-    return {k: v for k, v in d.items() if k in {'name', 'affiliation', 'orcid', 'type'}}
+    return {
+        k: v for k, v in d.items()
+        if k in {'name', 'affiliation', 'orcid', 'type'} and (v or k != 'orcid')}
+
