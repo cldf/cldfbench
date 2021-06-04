@@ -6,5 +6,5 @@
 2. Clone your fork
 3. Install `cldfbench` for development (preferably in a separate virtual environment) running
 ```bash
-pip install -e .[dev,test]
+pip install -r requirements.txt
 ```

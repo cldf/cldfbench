@@ -25,8 +25,8 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         'csvw>=1.5.6',
+        'clldutils>=3.9.0',
         'cldfcatalog>=1.3',
-        'clldutils>=3.6.0',
         'pycldf>=1.19.0',
         'termcolor',
         'requests',
@@ -44,7 +44,7 @@ setup(
         'glottolog': ['pyglottolog'],  # Access the Glottolog catalog.
         'concepticon': ['pyconcepticon'],  # Access the Concepticon catalog.
         'clts': ['pyclts'],  # Access the CLTS catalog.
-        'dev': ['flake8', 'wheel', 'twine'],
+        'dev': ['flake8', 'wheel', 'twine', 'tox'],
         'test': [
             'pytest>=5',
             'pytest-mock',
@@ -55,10 +55,16 @@ setup(
             'openpyxl',
             'xlrd>=2',
         ],
+       'docs': [
+            'sphinx',
+            'sphinx-autodoc-typehints',
+            'sphinx-rtd-theme',
+        ],
     },
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
