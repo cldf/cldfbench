@@ -6,10 +6,12 @@ Like programs such as git, this cli splits its functionality into sub-commands
 The rationale behind this is that while a lot of different tasks may be
 triggered using this cli, most of them require common configuration.
 """
+import csv
 import sys
 import contextlib
 
-from clldutils.clilib import ParserError, get_parser_and_subparsers, register_subcommands
+from clldutils.clilib import (
+    register_subcommands, get_parser_and_subparsers, ParserError, add_csv_field_size_limit)
 from clldutils.loglib import Logging
 from cldfcatalog import Config
 import termcolor
@@ -25,6 +27,7 @@ def main(args=None, catch_all=False, parsed_args=None, log=None):
 
     # We add a "hidden" option to turn-off config file reading in tests:
     parser.add_argument('--no-config', default=False, action='store_true', help=argparse.SUPPRESS)
+    add_csv_field_size_limit(parser, default=csv.field_size_limit())
 
     # Discover available commands:
     # Commands are identified by (<entry point name>).<module name>
