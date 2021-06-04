@@ -442,12 +442,12 @@ class Metadata(object):
                 "- the original source",
                 "  > {}".format(self.citation),
                 "- the derived dataset using the DOI of the "
-                "[particular released version](releases/) you were using"
+                "[particular released version](../../releases/) you were using"
             ])
         else:  # pragma: no cover
             lines.extend([
                 "this dataset using the DOI of the "
-                "[particular released version](releases/) you were using"
+                "[particular released version](../../releases/) you were using"
             ])
 
         lines.append('\n## Description\n\n')
