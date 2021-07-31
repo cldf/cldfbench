@@ -4,6 +4,7 @@ import shutil
 import pathlib
 
 import attr
+from csvw.metadata import Link
 import pycldf
 from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
 from pycldf.util import pkg_path
@@ -86,7 +87,8 @@ class CLDFWriter(object):
         self._cldf = self.cldf_spec.get_dataset()
         for comp, fname in self.cldf_spec.data_fnames.items():
             try:
-                self._cldf[comp]
+                t = self._cldf[comp]
+                t.url = Link(fname)
             except KeyError:
                 self._cldf.add_component(comp, url=fname)
         return self

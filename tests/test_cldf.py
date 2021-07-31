@@ -32,12 +32,17 @@ def test_cldf(tmp_path):
     # The metadata was copied:
     assert tmp_path.glob('*-metadata.json')
 
-    with CLDFWriter(CLDFSpec(dir=tmp_path, data_fnames=dict(ValueTable='data.csv'))) as writer:
-        assert writer.cldf['ValueTable']
+    with CLDFWriter(CLDFSpec(
+        module='StructureDataset',
+        dir=tmp_path,
+        data_fnames=dict(ValueTable='data.csv', ExampleTable='igt.csv')
+    )) as writer:
+        assert writer.cldf['ValueTable'] and writer.cldf['ExampleTable']
         writer['ValueTable', 'value'].separator = '|'
         writer.objects['ValueTable'].append(
             dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
-    ds = Dataset.from_metadata(tmp_path / 'Generic-metadata.json')
+    assert tmp_path.joinpath('data.csv').exists()
+    ds = Dataset.from_metadata(tmp_path / 'StructureDataset-metadata.json')
     values = list(ds['ValueTable'])
     assert len(values) == 1
     assert values[0]['Value'] == ['1', '2']
