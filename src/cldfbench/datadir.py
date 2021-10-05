@@ -11,6 +11,11 @@ import requests
 import termcolor
 
 try:
+    from odf.opendocument import load as load_odf
+except ImportError:  # pragma: no cover
+    load_odf = None
+
+try:
     import xlrd
 except ImportError:  # pragma: no cover
     xlrd = None
@@ -28,6 +33,14 @@ from pycldf.sources import Source
 
 
 __all__ = ['get_url', 'DataDir']
+
+
+def _ods_value(cell):
+    odf_ns_text = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
+    return ' '.join(
+        str(e).strip()
+        for e in cell.childNodes
+        if e.qname == (odf_ns_text, 'p'))
 
 
 def get_url(url, log=None, **kw):
@@ -96,6 +109,45 @@ class DataDir(type(pathlib.Path())):
     def read_bib(self, fname='sources.bib') -> typing.List[Source]:
         bib = pybtex.database.parse_string(self.read(fname), bib_format='bibtex')
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
+
+    def ods2csv(self, fname, outdir=None):
+        """
+        Dump the data from an OpenDocument Spreadsheet (*.ODS) file to CSV.
+
+        .. note::
+
+            Requires `cldfbench` to be installed with extra "odf".
+        """
+        if not load_odf:  # pragma: no cover
+            raise EnvironmentError(
+                'ods2csv is only available when cldfbench is installed with odf support\n'
+                'pip install cldfbench[odf]')
+
+        fname = self._path(fname)
+        ods_data = load_odf(fname)
+        odf_ns_table = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
+        tables = [
+            e for e in ods_data.spreadsheet.childNodes
+            if e.qname == (odf_ns_table, 'table')]
+
+        outdir = outdir or self
+        res = {}
+        for table in tables:
+            table_name = table.attributes[
+                (odf_ns_table, 'name')]
+            csv_path = outdir / '{}.{}.csv'.format(
+                fname.stem,
+                slug(table_name, lowercase=False))
+            with dsv.UnicodeWriter(csv_path) as writer:
+                writer.writerows(
+                    tuple(
+                        _ods_value(cell)
+                        for cell in row.childNodes
+                        if cell.qname == (odf_ns_table, 'table-cell'))
+                    for row in table.childNodes
+                    if row.qname == (odf_ns_table, 'table-row'))
+            res[table_name] = csv_path
+        return res
 
     def xls2csv(self, fname, outdir=None):
         """

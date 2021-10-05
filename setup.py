@@ -37,6 +37,7 @@ setup(
         'tqdm',
     ],
     extras_require={
+        'odf': ['odfpy'],
         'excel': [
             'openpyxl',
             'xlrd>=2',
@@ -52,6 +53,7 @@ setup(
             'coverage>=4.2',
             'pyglottolog>=3.2.2',
             'pyconcepticon',
+            'odfpy',
             'openpyxl',
             'xlrd>=2',
         ],
