@@ -1,3 +1,4 @@
+from itertools import islice, repeat
 import shutil
 import typing
 import pathlib
@@ -35,12 +36,59 @@ from pycldf.sources import Source
 __all__ = ['get_url', 'DataDir']
 
 
+ODF_NS_TABLE = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
+ODF_NS_TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
+
+
+def _real_len(seq, pred=bool):
+    for index in range(len(seq) - 1, -1, -1):
+        if pred(seq[index]):
+            return index + 1
+    else:
+        return 0
+
+
 def _ods_value(cell):
-    odf_ns_text = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
     return ' '.join(
         str(e).strip()
         for e in cell.childNodes
-        if e.qname == (odf_ns_text, 'p'))
+        if e.qname == (ODF_NS_TEXT, 'p'))
+
+
+def _ods_cells(row):
+    cells = [
+        (
+            _ods_value(cell),
+            int(
+                cell.attributes.get((ODF_NS_TABLE, 'number-columns-repeated'))
+                or '1')
+        )
+        for cell in row.childNodes
+        if cell.qname == (ODF_NS_TABLE, 'table-cell')]
+
+    real_len = _real_len(cells, pred=lambda pair: bool(pair[0]))
+    return [
+        cloned_cell
+        for cell, number in islice(cells, real_len)
+        for cloned_cell in repeat(cell, number)]
+
+
+def _ods_to_list(table):
+    rows = [
+        (
+            _ods_cells(row),
+            int(
+                row.attributes.get((ODF_NS_TABLE, 'number-rows-repeated'))
+                or '1')
+        )
+        for row in table.childNodes
+        if row.qname == (ODF_NS_TABLE, 'table-row')]
+
+    real_len = _real_len(rows, pred=lambda pair: bool(pair[0]))
+    return [
+        cloned_row
+        for row, number in islice(rows, real_len)
+        for cloned_row in repeat(row, number)]
 
 
 def get_url(url, log=None, **kw):
@@ -125,27 +173,19 @@ class DataDir(type(pathlib.Path())):
 
         fname = self._path(fname)
         ods_data = load_odf(fname)
-        odf_ns_table = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
         tables = [
             e for e in ods_data.spreadsheet.childNodes
-            if e.qname == (odf_ns_table, 'table')]
+            if e.qname == (ODF_NS_TABLE, 'table')]
 
         outdir = outdir or self
         res = {}
         for table in tables:
-            table_name = table.attributes[
-                (odf_ns_table, 'name')]
+            table_name = table.attributes[ODF_NS_TABLE, 'name']
             csv_path = outdir / '{}.{}.csv'.format(
                 fname.stem,
                 slug(table_name, lowercase=False))
             with dsv.UnicodeWriter(csv_path) as writer:
-                writer.writerows(
-                    tuple(
-                        _ods_value(cell)
-                        for cell in row.childNodes
-                        if cell.qname == (odf_ns_table, 'table-cell'))
-                    for row in table.childNodes
-                    if row.qname == (odf_ns_table, 'table-row'))
+                writer.writerows(_ods_to_list(table))
             res[table_name] = csv_path
         return res
 
