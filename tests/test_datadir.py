@@ -60,10 +60,19 @@ def test_datadir_ods(datadir):
     res = datadir.ods2csv(datadir / 'test.ods')
     assert res['Sheet2'].stem == 'test.Sheet2'
 
-    data = datadir.read_csv('test.Sheet2.csv')
-    assert data[1] == ['1.01', '1.03', '2.04', '']
-    assert data[2] == ['2.00', '2.01', '4.01', '']
-    assert data[4] == ['3', '4', '7', '']
+    data2 = datadir.read_csv('test.Sheet2.csv')
+    assert data2[1] == ['1.01', '1.03', '2.04']
+    assert data2[2] == ['2.00', '2.01', '4.01']
+    assert data2[4] == ['3', '4', '7']
+    # make sure there are no stray empty rows at the end
+    assert len(data2) == 5
+
+    data3 = datadir.read_csv('test.Sheet3.csv')
+    assert data3[0] == ['a', '', '', 'b']
+    assert data3[1] == []
+    assert data3[2] == []
+    assert data3[3] == ['c', '', '', 'd']
+    assert len(data3) == 4
 
 
 def test_datadir_download_and_unpack(datadir, mocker):
