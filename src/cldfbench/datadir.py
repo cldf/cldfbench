@@ -160,7 +160,7 @@ class DataDir(type(pathlib.Path())):
 
     def ods2csv(self, fname, outdir=None):
         """
-        Dump the data from an OpenDocument Spreadsheet (*.ODS) file to CSV.
+        Dump the data from an OpenDocument Spreadsheet (suffix .ODS) file to CSV.
 
         .. note::
 
