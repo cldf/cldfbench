@@ -5,7 +5,7 @@ setup(
     name='cldfbench',
     version='1.7.3.dev0',
     author='Robert Forkel',
-    author_email='forkel@shh.mpg.de',
+    author_email='dlce.rdm@eva.mpg.de',
     description='Python library implementing a CLDF workbench',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',

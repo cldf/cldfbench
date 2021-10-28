@@ -29,5 +29,5 @@ def iter_requirements():
             pkg = req.split('egg=')[-1]
         else:
             continue  # pragma: no cover
-        if pkg.lower() in imported:
+        if (pkg.lower() in imported) or (pkg.lower().replace('python-', '') in imported):
             yield req
