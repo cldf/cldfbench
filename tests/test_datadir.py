@@ -69,8 +69,8 @@ def test_datadir_ods(datadir):
 
     data3 = datadir.read_csv('test.Sheet3.csv')
     assert data3[0] == ['a', '', '', 'b']
-    assert data3[1] == []
-    assert data3[2] == []
+    assert data3[1] == ['', '', '', '']
+    assert data3[2] == ['', '', '', '']
     assert data3[3] == ['c', '', '', 'd']
     assert len(data3) == 4
 
