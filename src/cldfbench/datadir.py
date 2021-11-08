@@ -1,4 +1,4 @@
-from itertools import islice, repeat
+from itertools import chain, islice, repeat
 import shutil
 import typing
 import pathlib
@@ -73,6 +73,13 @@ def _ods_cells(row):
         for cloned_cell in repeat(cell, number)]
 
 
+def _pad_list(l, length):
+    if len(l) >= length:
+        return l
+    else:
+        return [e for e in chain(l, repeat('', length - len(l)))]
+
+
 def _ods_to_list(table):
     rows = [
         (
@@ -85,6 +92,9 @@ def _ods_to_list(table):
         if row.qname == (ODF_NS_TABLE, 'table-row')]
 
     real_len = _real_len(rows, pred=lambda pair: bool(pair[0]))
+
+    max_width = max(len(row) for row, _ in rows)
+    rows = ((_pad_list(row, max_width), number) for row, number in rows)
     return [
         cloned_row
         for row, number in islice(rows, real_len)
