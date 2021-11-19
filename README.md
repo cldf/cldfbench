@@ -1,5 +1,5 @@
 # cldfbench
-Tooling to create CLDF datasets from existing data
+Tooling to create [CLDF](https://cldf.clld.org) datasets from existing data.
 
 [![Build Status](https://github.com/cldf/cldfbench/workflows/tests/badge.svg)](https://github.com/cldf/cldfbench/actions?query=workflow%3Atests)
 [![Documentation Status](https://readthedocs.org/projects/cldfbench/badge/?version=latest)](https://cldfbench.readthedocs.io/en/latest/?badge=latest)
@@ -11,20 +11,20 @@ Tooling to create CLDF datasets from existing data
 This package provides tools to curate cross-linguistic data, with the goal of
 packaging it as [CLDF](https://cldf.clld.org) datasets.
 
-In particular, it supports a workflow where 
+In particular, it supports a workflow where:
 - "raw" source data is downloaded to a `raw/` subdirectory,
-- and subsequently converted to one or more CLDF datasets in a `cldf/` subdirectory, with the help of
+- and subsequently converted to one or more CLDF datasets in a `cldf/` subdirectory, with the help of:
   - configuration data in a `etc/` directory and
   - custom Python code (a subclass of [`cldfbench.Dataset`](src/cldfbench/dataset.py) which implements the workflow actions).
 
-This workflow is supported via
+This workflow is supported via:
 - a commandline interface `cldfbench` which calls the workflow actions as [subcommands](src/cldfbench/commands),
 - a `cldfbench.Dataset` base class, which must be overwritten in a custom module
   to hook custom code into the workflow.
 
 With this workflow and the separation of the data into three directories we want
 to provide a workbench for transparently deriving CLDF data from data that has been
-published before. In particular we want to delineate clearly
+published before. In particular we want to delineate clearly:
 - what forms part of the original or source data (`raw`), 
 - what kind of information is added by the curators of the CLDF dataset (`etc`)
 - and what data was derived using the workbench (`cldf`).
@@ -32,21 +32,21 @@ published before. In particular we want to delineate clearly
 
 ### Further reading
 
-- Paper - accepted for LREC 2020 - introducing `cldfbench` using an extended, real-world example:
+This paper introduces `cldfbench` and uses an extended, real-world example:
 
 > Forkel, R., & List, J.-M. (2020). CLDFBench: Give your cross-linguistic data a lift. In N. Calzolari, F. Béchet, P. Blache, K. Choukri, C. Cieri, T. Declerck, et al. (Eds.), Proceedings of the 12th Conference on Language Resources and Evaluation (LREC 2020) (pp. 6995-7002). Paris: European Language Resources Association (ELRA). [[PDF]](https://pure.mpg.de/pubman/item/item_3231858_1/component/file_3231859/shh2600.pdf)
 
 
-## Install
+## Installation
 
 `cldfbench` can be installed via `pip` - preferably in a 
-[virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - running
+[virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) - by running:
 ```shell script
 pip install cldfbench
 ```
 
 `cldfbench` provides some functionality that relies on python
-packages which are not needed for the core functionality. These are specified as [extras](https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies) and can be installed using syntax like
+packages which are not needed for the core functionality. These are specified as [extras](https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies) and can be installed using syntax like:
 ```shell
 pip install cldfbench[<extras>]
 ```
@@ -145,7 +145,7 @@ Typically, this code will make use of one or more
 [`cldfbench.CLDFSpec`](src/cldfbench/cldf.py) instances, which describes what kind of CLDF to create. A `CLDFSpec` also gives access to a
 [`cldfbench.CLDFWriter`](src/cldfbench/cldf.py) instance, which wraps a `pycldf.Dataset`.
 
-The main interfaces to these objects are
+The main interfaces to these objects are:
 - `cldfbench.Dataset.cldf_specs`: a method returning specifications of all CLDF datasets
   that are created by the dataset,
 - `cldfbench.Dataset.cldf_writer`: a method returning an initialized `CLDFWriter` 
@@ -176,13 +176,16 @@ a description of how this is supported by `cldfbench`.
 
 Linking data to reference catalogs is a major goal of CLDF, thus `cldfbench`
 provides tools to make catalog access and maintenance easier. Catalog data must be
-accessible in local clones of the data repository. `cldfbench` provides commands
+accessible in local clones of the data repository. `cldfbench` provides commands:
 - `catconfig` to create the clones and make them known through a configuration file,
 - `catinfo` to get an overview of the installed catalogs and their versions,
 - `catupdate` to update local clones from the upstream repositories.
 
-See https://cldfbench.readthedocs.io/en/latest//catalogs.html for a list of reference
-catalogs which are currently supported in `cldfbench`.
+See:
+
+- https://cldfbench.readthedocs.io/en/latest//catalogs.html
+
+for a list of reference catalogs which are currently supported in `cldfbench`.
 
 
 ### Curating a dataset on GitHub
@@ -218,13 +221,9 @@ Thus, with a setup as described here, you can make sure you create [FAIR data](h
 
 ## Extending `cldfbench`
 
-`cldfbench` can be extended or built-upon in various ways - typically by customizing
-core functionality in new python packages. To support particular types of raw data,
- you might want a custom `Dataset` class, or to support a particular type of CLDF data,
-  you would customize `CLDFWriter`.
+`cldfbench` can be extended or built-upon in various ways - typically by customizing core functionality in new python packages. To support particular types of raw data, you might want a custom `Dataset` class, or to support a particular type of CLDF data, you would customize `CLDFWriter`.
 
-In addition to extending `cldfbench` using the standard methods of object-oriented
-programming, there are two more ways of extending `cldfbench`:
+In addition to extending `cldfbench` using the standard methods of object-oriented programming, there are two more ways of extending `cldfbench`:
 
 
 ### Commands
@@ -236,7 +235,7 @@ For more info see the [`commands.README`](src/cldfbench/commands/README.md).
 ### Custom dataset templates
 
 A python package can provide alternative dataset templates to be run with `cldfbench new`.
-Such templates are implemented by
+Such templates are implemented by:
 - a subclass of `cldfbench.Template`,
 - which is advertised using an entry point `cldfbench.scaffold`:
 
