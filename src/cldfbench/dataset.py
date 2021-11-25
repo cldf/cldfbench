@@ -48,11 +48,12 @@ class Dataset(object):
     dir = None
     id = None
     metadata_cls = Metadata
+    datadir_cls = DataDir
 
     def __init__(self):
         if not self.dir:
             self.dir = pathlib.Path(inspect.getfile(self.__class__)).parent
-        self.dir = DataDir(self.dir)
+        self.dir = self.datadir_cls(self.dir)
         md = self.dir / 'metadata.json'
         self.metadata = self.metadata_cls.from_file(md) if md.exists() else self.metadata_cls()
         self.metadata.id = self.id

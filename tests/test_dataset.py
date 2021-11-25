@@ -48,3 +48,18 @@ def test_dataset_update_submodules(mocker, tmp_path):
             self.update_submodules()
 
     DS().cmd_download(mocker.Mock())
+
+
+def test_dataset_with_custom_datadir(tmp_path):
+    from cldfbench.datadir import DataDir
+
+    class DD(DataDir):
+        def hello(self):
+            return 'hello'
+
+    class DS(Dataset):
+        id = 'x'
+        dir = tmp_path
+        datadir_cls = DD
+
+    assert DS().raw_dir.hello() == 'hello'
