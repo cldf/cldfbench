@@ -30,7 +30,9 @@ def iter_scaffolds():
             yield ep.name, ep.load()
         except Exception as e:  # pragma: no cover
             warnings.warn(
-                '{0} loading cldfbench.scaffold {1}'.format(e.__class__.__name__, ep.name))
+                '{0} loading cldfbench.scaffold {1}: {2}'.format(
+                e.__class__.__name__, ep.name, e))
+
 
 
 class Template(object):
