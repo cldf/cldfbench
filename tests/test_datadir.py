@@ -1,4 +1,5 @@
 import sys
+import gzip
 import shutil
 
 import pytest
@@ -26,7 +27,13 @@ def test_datadir(datadir):
     assert datadir.read_json('fname')['a'] == 2
     datadir.write('sources.bib', '@article{id,\ntitle={the title}\n}')
     assert len(datadir.read_bib()) == 1
+    xml = datadir.read('test.ods', suffix='.zip', aname='content.xml')
+    assert xml.startswith('<?xml version="1.0" encoding="UTF-8"?>')
 
+    text = datadir.read('test.xml')
+    with gzip.open(datadir.joinpath('test.gz'), 'wb') as f:
+        f.write(text.encode('utf8'))
+    assert datadir.read('test.gz') == text
 
 def test_datadir_csv(datadir):
     rows = [['a', 'b'], ['c', 'd']]
@@ -35,7 +42,6 @@ def test_datadir_csv(datadir):
     assert datadir.read_csv('test.csv', normalize='NFC') == rows
     assert datadir.read_csv(
             'test.csv', normalize='NFC', dicts=True)[0]['a'] =='c'
-
 
 
 def test_datadir_xml(datadir):

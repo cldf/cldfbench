@@ -1,8 +1,9 @@
-from itertools import chain, islice, repeat
+import gzip
 import shutil
 import typing
 import pathlib
 import zipfile
+import itertools
 import contextlib
 from xml.etree import ElementTree as et
 import collections
@@ -69,15 +70,15 @@ def _ods_cells(row):
     real_len = _real_len(cells, pred=lambda pair: bool(pair[0]))
     return [
         cloned_cell
-        for cell, number in islice(cells, real_len)
-        for cloned_cell in repeat(cell, number)]
+        for cell, number in itertools.islice(cells, real_len)
+        for cloned_cell in itertools.repeat(cell, number)]
 
 
-def _pad_list(l, length):
-    if len(l) >= length:
-        return l
+def _pad_list(li, length):
+    if len(li) >= length:
+        return li
     else:
-        return [e for e in chain(l, repeat('', length - len(l)))]
+        return [e for e in itertools.chain(li, itertools.repeat('', length - len(li)))]
 
 
 def _ods_to_list(table):
@@ -97,8 +98,8 @@ def _ods_to_list(table):
     rows = ((_pad_list(row, max_width), number) for row, number in rows)
     return [
         cloned_row
-        for row, number in islice(rows, real_len)
-        for cloned_row in repeat(row, number)]
+        for row, number in itertools.islice(rows, real_len)
+        for cloned_row in itertools.repeat(row, number)]
 
 
 def get_url(url, log=None, **kw):
@@ -125,13 +126,35 @@ class DataDir(type(pathlib.Path())):
             return self / fname
         return pathlib.Path(fname)
 
-    def read(self, fname, normalize=None, encoding='utf8') -> str:
+    def read(self,
+             fname: typing.Union[str, pathlib.Path],
+             aname: str = None,
+             normalize: str = None,
+             suffix: str = None,
+             encoding='utf8') -> str:
         """
         Read text data from a file.
+
+        :param fname: Name of a file in `DataDir` or any `pathlib.Path`.
+        :param aname: "file in archive" name, if a file from a zip archive is to be read.
+        :param suffix: If `None`, suffix will be infered from the path to be read. Otherwise \
+        it can be used to force reading compressed content passing `.gz` or `.zip`.
+        :param normalize: Any normalization form understood by `unicodedata.normalize`.
         """
-        if not normalize:
-            return self._path(fname).read_text(encoding=encoding)
-        return unicodedata.normalize(normalize, self._path(fname).read_text(encoding=encoding))
+        p = self._path(fname)
+        suffix = suffix or p.suffix
+        if suffix == '.zip':
+            zip = zipfile.ZipFile(str(p))
+            text = zip.read(aname or zip.namelist()[0]).decode(encoding)
+        elif suffix == '.gz':
+            with gzip.open(p) as fp:
+                text = fp.read().decode(encoding)
+        else:
+            text = p.read_text(encoding=encoding)
+
+        if normalize:
+            text = unicodedata.normalize(normalize, text)
+        return text
 
     def write(self, fname, text, encoding='utf8'):
         self._path(fname).write_text(text, encoding=encoding)
