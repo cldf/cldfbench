@@ -11,8 +11,9 @@ def test_Glottolog(glottolog_dir):
     assert 'Bookkeeping' in cat.api.glottocode_by_name
     assert 'abc' in cat.api.glottocode_by_iso
     assert 'abcd1234' in cat.api.macroareas_by_glottocode
+    assert cat.__api__ == CachingGlottologAPI
 
-
+    
 def testConcepticon(concepticon_dir):
     cat = Concepticon(concepticon_dir)
     _ = cat.api.cached_glosses
