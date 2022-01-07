@@ -66,7 +66,7 @@ cldfbench new -h
    ```
 
 3. Now we want to convert WALS' quirky `tab` format to nice CLDF. We do so by
-   implementing the `cldf_specs` method, to specify that we want to create a `StructureDataset`:
+   implementing the `cldf_specs` method, to specify that we want to create a `StructureDataset` (note that this should replace the already existing definition of `cldf_specs` in the `Dataset` class):
    ```python
    def cldf_specs(self):
        from cldfbench import CLDFSpec
