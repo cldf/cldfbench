@@ -24,6 +24,7 @@ setup(
     platforms='any',
     python_requires='>=3.6',
     install_requires=[
+        'rfc3986<2',  # version 2.0.0 dropped python 3.6 support.
         'csvw>=1.5.6',
         'clldutils>=3.9.0',
         'cldfcatalog>=1.3',
@@ -32,7 +33,6 @@ setup(
         'requests',
         'appdirs',
         'pytest',
-        'rfc3986',
         'zenodoclient>=0.3',
         'tqdm',
     ],
