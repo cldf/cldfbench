@@ -11,7 +11,9 @@ import sys
 import contextlib
 
 from clldutils.clilib import (
-    register_subcommands, get_parser_and_subparsers, ParserError, add_csv_field_size_limit)
+    register_subcommands, get_parser_and_subparsers, ParserError, add_csv_field_size_limit,
+    add_random_seed,
+)
 from clldutils.loglib import Logging
 from cldfcatalog import Config
 import termcolor
@@ -28,6 +30,7 @@ def main(args=None, catch_all=False, parsed_args=None, log=None):
     # We add a "hidden" option to turn-off config file reading in tests:
     parser.add_argument('--no-config', default=False, action='store_true', help=argparse.SUPPRESS)
     add_csv_field_size_limit(parser, default=csv.field_size_limit())
+    add_random_seed(parser)
 
     # Discover available commands:
     # Commands are identified by (<entry point name>).<module name>
