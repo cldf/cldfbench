@@ -1,6 +1,4 @@
-
-Releasing cldfbench
-===================
+# Releasing cldfbench
 
 - Do platform test via tox:
   ```shell
@@ -14,10 +12,10 @@ Releasing cldfbench
 
 - Make sure the docs render:
   ```shell
-  cd doc
-  make clean html
-  cd ..
+  cd doc; make clean html; cd ..
   ```
+
+- Update `CHANGELOG.md`
 
 - Update the version number, by removing the trailing `.dev0` in:
   - `setup.py`
@@ -37,8 +35,8 @@ Releasing cldfbench
 - Release to PyPI:
   ```shell
   rm dist/*
-  python setup.py sdist bdist_wheel
-  twine upload dist/*
+  python -m build -n
+  twine upload dist/* -u __token__ -p"..."
   ```
 
 - Push to github:
@@ -57,4 +55,3 @@ Releasing cldfbench
   git commit -a -m "bump version for development"
   git push origin
   ```
-
