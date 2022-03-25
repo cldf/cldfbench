@@ -15,12 +15,12 @@
   cd doc; make clean html; cd ..
   ```
 
-- Update `CHANGELOG.md`
-
 - Update the version number, by removing the trailing `.dev0` in:
-  - `setup.py`
+  - `setup.cfg`
   - `src/cldfbench/__init__.py`
   - `doc/conf.py`
+
+- Update `CHANGELOG.md`
 
 - Create the release commit:
   ```shell
@@ -46,7 +46,7 @@
   ```
 
 - Change version for the next release cycle, i.e. incrementing and adding .dev0
-  - `setup.py`
+  - `setup.cfg`
   - `src/cldfbench/__init__.py`
   - `doc/conf.py`
 
