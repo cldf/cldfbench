@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+
+## [1.11.0] - 2022-05-26
+
 - Drop py3.6 compat.
 - Extend `add_catalog_spec` to allow for optional catalog instantiation.
 
