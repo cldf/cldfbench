@@ -21,6 +21,7 @@ import argparse
 
 import cldfbench
 from cldfbench.catalogs import BUILTIN_CATALOGS
+from cldfbench.cli_util import IGNORE_MISSING
 import cldfbench.commands
 
 
@@ -57,28 +58,32 @@ def main(args=None, catch_all=False, parsed_args=None, log=None):
                 if hasattr(args, name):
                     # If no path was passed on the command line, we look up the config:
                     path = getattr(args, name)
-                    if (not path) and (not args.no_config):
+                    if path != IGNORE_MISSING:
+                        if (not path) and (not args.no_config):
+                            try:
+                                path = cfg.get_clone(name)
+                                from_cfg = True
+                            except KeyError as e:  # pragma: no cover
+                                print(termcolor.colored(str(e) + '\n', 'red'))
+                                return main([args._command, '-h'])
                         try:
-                            path = cfg.get_clone(name)
-                            from_cfg = True
-                        except KeyError as e:  # pragma: no cover
+                            setattr(
+                                args,
+                                name,
+                                stack.enter_context(
+                                    cls(path, getattr(args, name + '_version', None))),
+                            )
+                            assert getattr(args, name).api
+                        except ValueError as e:
+                            print(termcolor.colored(
+                                '\nError initializing catalog {0}'.format(name), 'red'))
+                            if from_cfg:
+                                print(
+                                    termcolor.colored('from config {0}'.format(cfg.fname()), 'red'))
                             print(termcolor.colored(str(e) + '\n', 'red'))
                             return main([args._command, '-h'])
-                    try:
-                        setattr(
-                            args,
-                            name,
-                            stack.enter_context(
-                                cls(path, getattr(args, name + '_version', None))),
-                        )
-                    except ValueError as e:
-                        print(termcolor.colored(
-                            '\nError initializing catalog {0}'.format(name), 'red'))
-                        if from_cfg:
-                            print(
-                                termcolor.colored('from config {0}'.format(cfg.fname()), 'red'))
-                        print(termcolor.colored(str(e) + '\n', 'red'))
-                        return main([args._command, '-h'])
+                    else:
+                        setattr(args, name, None)
 
         try:
             return args.main(args) or 0

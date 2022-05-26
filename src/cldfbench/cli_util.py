@@ -18,6 +18,8 @@ __all__ = ['DatasetNotFoundException',
            'get_dataset', 'get_datasets', 'get_cldf_dataset',
            'with_dataset', 'with_datasets']
 
+IGNORE_MISSING = '-'
+
 
 class DatasetNotFoundException(Exception):
     pass
@@ -102,7 +104,11 @@ def get_cldf_dataset(args: argparse.Namespace, cldf_spec=None) -> pycldf.Dataset
             return pycldf.Dataset.from_data(args.dataset)
 
 
-def add_catalog_spec(parser: argparse.ArgumentParser, name: str, with_version: bool = True):
+def add_catalog_spec(
+        parser: argparse.ArgumentParser,
+        name: str,
+        with_version: bool = True,
+        default=None):
     """
     Add an option for a reference catalog (at a specific version tag) to the CLI.
 
@@ -110,6 +116,8 @@ def add_catalog_spec(parser: argparse.ArgumentParser, name: str, with_version: b
     :param name: Option name to use for the catalog.
     :param with_version: Flag signaling whether an option to select a version tag for the \
     catalog should be added.
+    :param default: The default value for the argument. `None` will trigger config lookup, \
+    `IGNORE_MISSING` will set the argument to `None` if no user-supplied value is found.
 
     .. note::
 
@@ -122,7 +130,7 @@ def add_catalog_spec(parser: argparse.ArgumentParser, name: str, with_version: b
         '--' + name,
         metavar=name.upper(),
         help='Path to repository clone of {0} data'.format(name.capitalize()),
-        default=None)
+        default=default)
     if with_version:
         parser.add_argument(
             '--{0}-version'.format(name),
