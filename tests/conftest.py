@@ -2,9 +2,16 @@ import pathlib
 import shutil
 
 import pytest
+import csvw
+import packaging.version
 
 from cldfcatalog.repository import get_test_repo
 from cldfbench import Dataset
+
+
+@pytest.fixture(scope='session')
+def csvw3():
+    return packaging.version.parse(csvw.__version__) > packaging.version.parse('2.0.0')
 
 
 @pytest.fixture

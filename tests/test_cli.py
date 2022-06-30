@@ -178,7 +178,7 @@ def test_workflow(tmpds, glottolog_dir):
     _main('geojson ' + str(tmpds))
 
 
-def test_diff(tmpds, mocker, caplog, glottolog_dir):
+def test_diff(tmpds, mocker, caplog, glottolog_dir, csvw3):
     class Item:
         def __init__(self, p):
             self.a_path = 'cldf/' + p
@@ -196,7 +196,7 @@ def test_diff(tmpds, mocker, caplog, glottolog_dir):
     mocker.patch('cldfbench.commands.diff.git', git())
     _main('makecldf ' + str(tmpds) + ' --glottolog ' + str(glottolog_dir))
     assert _main('diff ' + str(tmpds), log=logging.getLogger(__name__)) == 2
-    assert len(caplog.records) == 11
+    assert len(caplog.records) == 10 if csvw3 else 11
 
 
 def test_check(tmpds, tmp_path):
