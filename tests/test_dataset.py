@@ -14,9 +14,8 @@ def test_get_dataset_from_path(fixtures_dir):
 
 def test_get_dataset_from_id(mocker, ds_cls):
     mocker.patch(
-        'cldfbench.dataset.pkg_resources',
-        mocker.Mock(iter_entry_points=mocker.Mock(
-            return_value=[mocker.Mock(load=mocker.Mock(return_value=ds_cls))])))
+        'cldfbench.dataset.get_entrypoints',
+        mocker.Mock(return_value=[mocker.Mock(load=mocker.Mock(return_value=ds_cls))]))
     assert isinstance(get_dataset('this'), ds_cls)
 
 

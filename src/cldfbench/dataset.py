@@ -1,10 +1,9 @@
-import argparse
 import sys
 import typing
 import inspect
 import pathlib
 import logging
-import pkg_resources
+import argparse
 import importlib
 import subprocess
 from datetime import datetime
@@ -18,6 +17,7 @@ from cldfbench.cldf import CLDFSpec, CLDFWriter
 from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
 from cldfbench.ci import build_status_badge
+from cldfbench.util import get_entrypoints
 
 __all__ = ['iter_datasets', 'get_dataset', 'get_datasets', 'Dataset', 'ENTRY_POINT']
 ENTRY_POINT = 'cldfbench.dataset'
@@ -229,7 +229,7 @@ def iter_datasets(ep: str = ENTRY_POINT) -> typing.Generator[Dataset, None, None
 
     :param ep: Name of the entry point.
     """
-    for ep in pkg_resources.iter_entry_points(ep):
+    for ep in get_entrypoints(ep):
         try:
             cls = ep.load()
             yield cls()  # yield an initialized `Dataset` object.

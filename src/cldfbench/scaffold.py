@@ -9,23 +9,23 @@ Templates can be customized by
 - providing more metadata as template variables, by overwriting `Template.metadata` with a
   custom subclass of `cldfbench.metadata.Metadata`.
 """
-import pathlib
 import re
 import shutil
+import pathlib
 import warnings
-import pkg_resources
 
 import attr
 
 import cldfbench
 from cldfbench.metadata import Metadata
+from cldfbench.util import get_entrypoints
 
 __all__ = ['Template']
 
 
 def iter_scaffolds():
     yield 'cldfbench', Template
-    for ep in pkg_resources.iter_entry_points('cldfbench.scaffold'):
+    for ep in get_entrypoints('cldfbench.scaffold'):
         try:  # pragma: no cover
             yield ep.name, ep.load()
         except Exception as e:  # pragma: no cover
