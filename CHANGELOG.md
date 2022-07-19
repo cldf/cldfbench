@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 
+## [1.12.0] - 2022-07-19
+
+- Don't use `pkg_resources` to access entry points.
+- Compatibility with `csvw` v3.
+
+
 ## [1.11.0] - 2022-05-26
 
 - Drop py3.6 compat.
