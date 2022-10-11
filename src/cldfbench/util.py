@@ -1,4 +1,5 @@
 import sys
+import pathlib
 import subprocess
 try:
     from importlib.metadata import entry_points
@@ -25,9 +26,14 @@ def iter_requirements():
     imported in the current python process.
     """
     imported = set(m.split('.')[0].lower() for m in sys.modules.keys())
+    pip = pathlib.Path(sys.executable).parent / 'pip'
+    if not pip.exists():  # pragma: no cover
+        pip = pathlib.Path(sys.executable).parent / 'pip3'
+    if not pip.exists():  # pragma: no cover
+        return
 
     try:
-        installed = subprocess.check_output(['pip', 'freeze'])
+        installed = subprocess.check_output([str(pip), 'freeze'])
     except subprocess.CalledProcessError:  # pragma: no cover
         raise ValueError()
 
