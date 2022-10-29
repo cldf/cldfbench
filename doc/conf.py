@@ -21,8 +21,8 @@ project = 'cldfbench'
 copyright = '2022, Robert Forkel'
 author = 'Robert Forkel'
 
-release = '1.12.1.dev0'
-version = '1.12.1.dev0'
+release = '1.13.0'
+version = '1.13.0'
 
 
 # -- General configuration ---------------------------------------------------
