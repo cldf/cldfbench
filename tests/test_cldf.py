@@ -24,6 +24,8 @@ def test_cldf_spec(tmp_path):
 
 
 def test_cldf(tmp_path):
+    from cldfbench.cldf import WITH_ZIPPED
+
     with pytest.raises(AttributeError):
         _ = CLDFWriter().cldf
 
@@ -35,13 +37,14 @@ def test_cldf(tmp_path):
     with CLDFWriter(CLDFSpec(
         module='StructureDataset',
         dir=tmp_path,
-        data_fnames=dict(ValueTable='data.csv', ExampleTable='igt.csv')
+        data_fnames=dict(ValueTable='data.csv', ExampleTable='igt.csv'),
+        zipped=['ValueTable'],
     )) as writer:
         assert writer.cldf['ValueTable'] and writer.cldf['ExampleTable']
         writer['ValueTable', 'value'].separator = '|'
         writer.objects['ValueTable'].append(
             dict(ID=1, Language_ID='l', Parameter_ID='p', Value=[1, 2]))
-    assert tmp_path.joinpath('data.csv').exists()
+    assert (not WITH_ZIPPED) or tmp_path.joinpath('data.csv.zip').exists()
     ds = Dataset.from_metadata(tmp_path / 'StructureDataset-metadata.json')
     values = list(ds['ValueTable'])
     assert len(values) == 1

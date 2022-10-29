@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add support for writing zipped data tables (requirs pycldf >= 1.29).
+
 
 ## [1.12.0] - 2022-07-19
 

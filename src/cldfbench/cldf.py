@@ -1,7 +1,8 @@
 import sys
-import collections
 import shutil
 import pathlib
+import warnings
+import collections
 
 import attr
 from csvw.metadata import Link
@@ -14,6 +15,7 @@ from cldfbench.catalogs import Catalog
 from cldfbench.util import iter_requirements
 
 __all__ = ['CLDFWriter', 'CLDFSpec']
+WITH_ZIPPED = tuple(map(int, pycldf.__version__.split('.')[:2])) >= (1, 29)
 
 
 class CLDFWriter(object):
@@ -97,7 +99,10 @@ class CLDFWriter(object):
         """
         When exiting the writer context, write data (and metadata) to disk.
         """
-        self.write(**self.objects)
+        if WITH_ZIPPED:
+            self.write(zipped=self.cldf_spec.zipped, **self.objects)
+        else:  # pragma: no cover
+            self.write(**self.objects)
 
     def write(self, **kw):
         self.cldf.properties.setdefault('rdf:type', 'http://www.w3.org/ns/dcat#Distribution')
@@ -156,6 +161,8 @@ class CLDFSpec(object):
     :ivar data_fnames: A `dict` mapping component names to custom csv file names (which may be \
     important if multiple different CLDF datasets are created in the same directory).
     :ivar writer_cls: `CLDFWriter` subclass to use for writing the data.
+    :ivar zipped: An `iterable` listing component names or csv file names for which the \
+    corresponding tables should be zipped.
     """
     dir = attr.ib(converter=lambda s: pathlib.Path(s) if s else s)
     module = attr.ib(
@@ -167,8 +174,11 @@ class CLDFSpec(object):
     metadata_fname = attr.ib(default=None)
     data_fnames = attr.ib(default=attr.Factory(dict))
     writer_cls = attr.ib(default=CLDFWriter)
+    zipped = attr.ib(default=attr.Factory(set))
 
     def __attrs_post_init__(self):
+        if self.zipped and not WITH_ZIPPED:  # pragma: no cover
+            warnings.warn('Writing zipped tables requires pycldf >= 1.29', category=UserWarning)
         if self.default_metadata_path:
             self.default_metadata_path = pathlib.Path(self.default_metadata_path)
             try:
