@@ -83,7 +83,7 @@ def main(args=None, catch_all=False, parsed_args=None, log=None):
                             print(termcolor.colored(str(e) + '\n', 'red'))
                             return main([args._command, '-h'])
                     else:
-                        setattr(args, name, None)
+                        setattr(args, name, None)  # pragma: no cover
 
         try:
             return args.main(args) or 0

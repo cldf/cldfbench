@@ -45,10 +45,10 @@ from clldutils.clilib import PathType, ParserError
 from clldutils.misc import format_size, nfilter
 from clldutils.path import md5, git_describe
 from csvw.dsv import UnicodeWriter
+from csvw.datatypes import anyURI
 from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
 from zenodoclient.models import PUBLISHED
 import tqdm
-import rfc3986
 
 
 MEDIA = 'media'
@@ -63,8 +63,7 @@ Supplement to dataset \"{ds_title}\" ({doi}) containing the {media} files{format
 as compressed folder *{media}.zip*.
 
 The {media} files are structured into separate folders named by the first two characters of the
-file name. Each individual {media} file is named according to the ID specified in the file
-*cldf/media.csv*.
+file name. Each individual {media} file is named according to the ID specified in MediaTable.
 A (filtered) version of which is included as {index}
 in the *{media}.zip* file containing the additional column *local_path*.
 
@@ -137,7 +136,7 @@ def _create_download_thread(url, target):
         urlretrieve(url, str(target))
 
     while threading.active_count() > 7:
-        time.sleep(0.1)
+        time.sleep(0.1)  # pragma: no cover
 
     download_thread = threading.Thread(target=_download, args=(url, target))
     download_thread.start()
@@ -145,18 +144,19 @@ def _create_download_thread(url, target):
 
 
 def run(args):
-
     ds = get_dataset(args)
     ds_cldf = ds.cldf_reader()
     release_dir = args.out / '{0}_{1}'.format(ds.id, MEDIA)
 
-    if ds_cldf.get('media.csv', None) is None:  # pragma: no cover
-        args.log.error('Dataset has no media.csv')
+    media_table = ds_cldf.get('MediaTable', ds_cldf.get('media.csv', None))
+
+    if media_table is None:  # pragma: no cover
+        args.log.error('Dataset has no MediaTable or media.csv')
         raise ParserError
     if args.parent_doi and not Zenodo.DOI_PATTERN.match(args.parent_doi):
         args.log.error('Invalid passed DOI')
         raise ParserError
-    if args.update_zenodo:
+    if args.update_zenodo:  # pragma: no cover
         if not release_dir.exists():
             args.log.error('"{0}" not found -- run --create-release first?'.format(
                 release_dir))
@@ -177,26 +177,24 @@ def run(args):
     if args.mimetype:
         mime_types = [m.strip() for m in nfilter(args.mimetype.split(','))]
 
-    if args.list:
-        size = collections.Counter()
-        number = collections.Counter()
-    else:
-        media_dir = args.out / MEDIA
-        media_dir.mkdir(exist_ok=True)
-        media = []
+    size = collections.Counter()
+    number = collections.Counter()
+    media_dir = args.out / MEDIA
+    media = []
+    used_file_extensions = set()
 
     if not args.update_zenodo:
-        used_file_extensions = set()
+        media_dir.mkdir(exist_ok=True)
         with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
             for i, row in enumerate(tqdm.tqdm(
-                    [r for r in ds_cldf['media.csv']], desc='Getting {0} items'.format(MEDIA))):
-                url = ds_cldf.get_row_url('media.csv', row)
-                if isinstance(url, rfc3986.URIReference):
-                    url = url.normalize().unsplit()
-                    row['URL'] = url
+                    [r for r in media_table], desc='Getting {0} items'.format(MEDIA))):
+                row['URL'] = url = anyURI.to_string(ds_cldf.get_row_url(media_table, row))
+                #
+                # FIXME: Don't assume URLs without query!
+                #
                 f_ext = url.split('.')[-1].lower()
                 if args.debug and i > 500:
-                    break
+                    break  # pragma: no cover
                 if (mime_types is None) or f_ext in mime_types\
                         or any(row['mimetype'].startswith(x) for x in mime_types):
                     if args.list:
@@ -229,9 +227,7 @@ def run(args):
 
     if args.create_release:
         assert media_dir.exists(), 'No folder "{0}" found in {1}'.format(MEDIA, media_dir.resolve())
-
         release_dir.mkdir(exist_ok=True)
-
         media.append(media_dir / INDEX_CSV)
 
         try:
@@ -241,7 +237,7 @@ def run(args):
             for f in tqdm.tqdm(media, desc='Creating {0}.zip'.format(MEDIA)):
                 zipf.write(str(f), str(os.path.relpath(str(f), str(fp))))
             zipf.close()
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             args.log.error(e)
             raise
 
@@ -323,10 +319,8 @@ def run(args):
                 media=MEDIA,
                 index=INDEX_CSV))
 
-    if args.update_zenodo:
-
-        md = {}
-        md.update(jsonlib.load(release_dir / ZENODO_FILE_NAME))
+    if args.update_zenodo:  # pragma: no cover
+        md = jsonlib.load(release_dir / ZENODO_FILE_NAME)
 
         if args.debug:
             api_url = API_URL_SANDBOX
