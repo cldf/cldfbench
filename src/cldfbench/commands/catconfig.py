@@ -30,7 +30,7 @@ def run(args):
             if not val:
                 if cat.default_location().exists():  # pragma: no cover
                     val = cat(cat.default_location()).dir
-                    args.log.info('CLone of {0} exists at {1} - skipping'.format(
+                    args.log.info('Clone of {0} exists at {1} - skipping'.format(
                         cat.__github__, cat.default_location()))
                 elif args.quiet or confirm(
                         'clone {0}?'.format(cat.__github__), default=False):  # pragma: no cover
