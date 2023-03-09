@@ -105,7 +105,8 @@ cldfbench new -h
 
    Again, we can run the command from the command line:
    ```shell script
-   $ cldfbench makecldf theid/cldfbench_theid.py --glottolog ../glottolog/glottolog
+   $ cd theid
+   $ cldfbench makecldf cldfbench_theid.py --glottolog ../glottolog/glottolog
    INFO    running cmd_makecldf on theid ...
    INFO    ... done theid [0.1 secs]
    ```
