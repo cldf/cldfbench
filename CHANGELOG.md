@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Bugfix: Handle multi-line citations properly when creating README.md
+
+
 ## [1.13.0] - 2022-10-29
 
 - Add support for writing zipped data tables (requirs pycldf >= 1.29).

@@ -438,9 +438,9 @@ class Metadata(object):
             '## How to cite\n\nIf you use these data please cite',
         ]
         if self.citation:
+            lines.append('- the original source')
+            lines.extend(["  > {}".format(line) for line in self.citation.split('\n')])
             lines.extend([
-                "- the original source",
-                "  > {}".format(self.citation),
                 "- the derived dataset using the DOI of the "
                 "[particular released version](../../releases/) you were using"
             ])
