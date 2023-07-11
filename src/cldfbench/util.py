@@ -1,14 +1,11 @@
 import sys
 import pathlib
 import subprocess
-try:
-    from importlib.metadata import entry_points
-except ModuleNotFoundError:  # pragma: no cover
-    from importlib_metadata import entry_points
+import importlib.metadata
 
 
 def get_entrypoints(group):
-    eps = entry_points()
+    eps = importlib.metadata.entry_points()
     return eps.select(group=group) if hasattr(eps, 'select') else eps.get(group, [])
 
 

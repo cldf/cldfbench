@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Bugfix: Handle multi-line citations properly when creating README.md
+- Drop Python 3.7 compatibility.
 
 
 ## [1.13.0] - 2022-10-29
