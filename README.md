@@ -223,7 +223,8 @@ Thus, with a setup as described here, you can make sure you create [FAIR data](h
 
 `cldfbench` can be extended or built-upon in various ways - typically by customizing core functionality in new python packages. To support particular types of raw data, you might want a custom `Dataset` class, or to support a particular type of CLDF data, you would customize `CLDFWriter`.
 
-In addition to extending `cldfbench` using the standard methods of object-oriented programming, there are two more ways of extending `cldfbench`:
+In addition to extending `cldfbench` using the standard methods of object-oriented programming, there are two more ways of extending `cldfbench`: Commands and dataset templates. Both are implemented using [entry ponits](https://setuptools.pypa.io/en/latest/userguide/entry_point.html).
+So packages which provide custom commands or dataset templates must declare these in metadata that is made known to other Python packages (in particular the `cldfbench` package) **upon installation**.
 
 
 ### Commands
