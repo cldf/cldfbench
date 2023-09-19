@@ -187,6 +187,11 @@ See:
 
 for a list of reference catalogs which are currently supported in `cldfbench`.
 
+**Note:** Cloning [glottolog/glottolog](https://github.com/glottolog/glottolog) - due to the
+deeply nested directories of the language classification - results in long path names. On Windows
+this may require disabling the
+[maximum path length limitation](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation).
+
 
 ### Curating a dataset on GitHub
 
