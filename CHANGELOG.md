@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added method to Glottolog API to retrieve language-level languoids, e.g.
+  to supplement coordinates for dialects.
 - Bugfix: Handle multi-line citations properly when creating README.md
 - Drop Python 3.7 compatibility.
 
