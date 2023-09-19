@@ -129,7 +129,7 @@ This will create the following layout (where `<ID>` stands for the chosen datase
 ├── setup.cfg          # Python setup config, providing defaults for test integration
 ├── setup.py           # Python setup file, making the dataset "installable" 
 ├── test.py            # The python code to run for dataset validation
-└── .travis.yml        # Integrate the validation with Travis-CI
+└── .github            # Integrate the validation with GitHub actions
 ```
 
 

@@ -1,6 +1,6 @@
 # Changes
 
-## [Unreleased]
+## [1.14.0] - 2023-09-19
 
 - Added method to Glottolog API to retrieve language-level languoids, e.g.
   to supplement coordinates for dialects.
