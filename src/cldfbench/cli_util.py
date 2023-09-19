@@ -1,7 +1,7 @@
-import argparse
 import json
 import typing
 from time import time
+import argparse
 
 from clldutils.clilib import ParserError
 import termcolor
@@ -25,14 +25,14 @@ class DatasetNotFoundException(Exception):
     pass
 
 
-def add_entry_point(parser, ep=ENTRY_POINT):
+def add_entry_point(parser: argparse.ArgumentParser, ep: str = ENTRY_POINT):
     parser.add_argument(
         '--entry-point',
         help='Name of entry_points to identify datasets',
         default=ep)
 
 
-def add_dataset_spec(parser, ep=ENTRY_POINT, multiple=False):
+def add_dataset_spec(parser: argparse.ArgumentParser, ep: str = ENTRY_POINT, multiple=False):
     """
     Add arguments and options to specify `cldfbench` Datasets to the CLI.
 

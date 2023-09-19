@@ -26,7 +26,7 @@ try:
 except ImportError:  # pragma: no cover
     openpyxl = None
 
-import pybtex
+import pybtex.database
 from csvw import dsv
 from clldutils.misc import xmlchars, slug
 from clldutils.path import TemporaryDirectory
@@ -102,7 +102,7 @@ def _ods_to_list(table):
         for cloned_row in itertools.repeat(row, number)]
 
 
-def get_url(url, log=None, **kw):
+def get_url(url: str, log=None, **kw) -> requests.Response:
     res = requests.get(url, **kw)
     if log:
         level = log.info if res.status_code == 200 else log.warning
@@ -115,7 +115,7 @@ class DataDir(type(pathlib.Path())):
     """
     A `pathlib.Path` augmented with functionality to read common data formats.
     """
-    def _path(self, fname):
+    def _path(self, fname: typing.Union[str, pathlib.Path]) -> pathlib.Path:
         """
         Interpret strings without "/" as names of files in `self`.
 
@@ -131,13 +131,13 @@ class DataDir(type(pathlib.Path())):
              aname: str = None,
              normalize: str = None,
              suffix: str = None,
-             encoding='utf8') -> str:
+             encoding: str = 'utf8') -> str:
         """
         Read text data from a file.
 
         :param fname: Name of a file in `DataDir` or any `pathlib.Path`.
         :param aname: "file in archive" name, if a file from a zip archive is to be read.
-        :param suffix: If `None`, suffix will be infered from the path to be read. Otherwise \
+        :param suffix: If `None`, suffix will be inferred from the path to be read. Otherwise \
         it can be used to force reading compressed content passing `.gz` or `.zip`.
         :param normalize: Any normalization form understood by `unicodedata.normalize`.
         """
@@ -156,11 +156,18 @@ class DataDir(type(pathlib.Path())):
             text = unicodedata.normalize(normalize, text)
         return text
 
-    def write(self, fname, text, encoding='utf8'):
+    def write(self, fname: typing.Union[str, pathlib.Path], text: str, encoding='utf8'):
+        """
+        Write text data to a file.
+
+        :param fname: Name of a file in `DataDir` or any `pathlib.Path`.
+        """
         self._path(fname).write_text(text, encoding=encoding)
         return fname
 
-    def read_csv(self, fname, normalize=None, **kw) -> list:
+    def read_csv(self,
+                 fname: typing.Union[str, pathlib.Path],
+                 normalize=None, **kw) -> typing.List[typing.Union[dict, list]]:
         """
         Read CSV data from a file.
         """
@@ -174,24 +181,37 @@ class DataDir(type(pathlib.Path())):
             return [[unicodedata.normalize(normalize, k) for k in row]
                     for row in dsv.reader(self._path(fname), **kw)]
 
-    def write_csv(self, fname, rows, **kw):
+    def write_csv(self,
+                  fname: typing.Union[str, pathlib.Path],
+                  rows: typing.Iterable[typing.List[str]], **kw):
+        """
+        Write CSV data to a file.
+        """
         with dsv.UnicodeWriter(self._path(fname), **kw) as writer:
             writer.writerows(rows)
 
-    def read_xml(self, fname, wrap=True) -> et.Element:
+    def read_xml(self, fname: typing.Union[str, pathlib.Path], wrap=True) -> et.Element:
+        """
+        Reads and parses XML from a file.
+        """
         xml = xmlchars(self.read(fname))
         if wrap:
             xml = '<r>{0}</r>'.format(xml)
         return et.fromstring(xml.encode('utf8'))
 
-    def read_json(self, fname, **kw) -> typing.Union[str, list, dict]:
+    def read_json(self,
+                  fname: typing.Union[str, pathlib.Path],
+                  **kw) -> typing.Union[str, list, dict]:
         return jsonlib.load(self._path(fname))
 
-    def read_bib(self, fname='sources.bib') -> typing.List[Source]:
+    def read_bib(self,
+                 fname: typing.Union[str, pathlib.Path] = 'sources.bib') -> typing.List[Source]:
         bib = pybtex.database.parse_string(self.read(fname), bib_format='bibtex')
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
 
-    def ods2csv(self, fname, outdir=None):
+    def ods2csv(self,
+                fname: typing.Union[str, pathlib.Path],
+                outdir: typing.Optional[pathlib.Path] = None) -> typing.Dict[str, pathlib.Path]:
         """
         Dump the data from an OpenDocument Spreadsheet (suffix .ODS) file to CSV.
 
@@ -222,7 +242,9 @@ class DataDir(type(pathlib.Path())):
             res[table_name] = csv_path
         return res
 
-    def xls2csv(self, fname, outdir=None):
+    def xls2csv(self,
+                fname: typing.Union[str, pathlib.Path],
+                outdir: typing.Optional[pathlib.Path] = None) -> typing.Dict[str, pathlib.Path]:
         """
         Dump the data from an Excel XLS file to CSV.
 
@@ -253,7 +275,9 @@ class DataDir(type(pathlib.Path())):
                 res[sname] = path
         return res
 
-    def xlsx2csv(self, fname, outdir=None):
+    def xlsx2csv(self,
+                 fname: typing.Union[str, pathlib.Path],
+                 outdir: typing.Optional[pathlib.Path] = None) -> typing.Dict[str, pathlib.Path]:
         """
         Dump the data from an Excel XLSX file to CSV.
 
@@ -290,7 +314,10 @@ class DataDir(type(pathlib.Path())):
         return res
 
     @contextlib.contextmanager
-    def temp_download(self, url, fname, log=None):
+    def temp_download(self,
+                      url: str,
+                      fname: typing.Union[str, pathlib.Path],
+                      log=None) -> pathlib.Path:
         """
         Context manager to use when downloaded data needs to be manipulated before storage \
         (e.g. to anonymize it).
@@ -310,7 +337,11 @@ class DataDir(type(pathlib.Path())):
             if p and p.exists():
                 p.unlink()
 
-    def download(self, url, fname, log=None, skip_if_exists=False):
+    def download(self,
+                 url: str,
+                 fname: typing.Union[str, pathlib.Path],
+                 log=None,
+                 skip_if_exists=False):
         """
         Download data from a URL to the directory.
         """
@@ -318,18 +349,18 @@ class DataDir(type(pathlib.Path())):
         if p.exists() and skip_if_exists:
             return p
         res = get_url(url, log=log, stream=True)
-        with open(str(self / fname), 'wb') as fp:
+        with p.open('wb') as fp:
             for chunk in res.iter_content(chunk_size=1024):
                 if chunk:  # filter out keep-alive new chunks
                     fp.write(chunk)
         return p
 
-    def download_and_unpack(self, url, *paths, **kw):
+    def download_and_unpack(self, url: str, *paths: str, **kw):
         """
         Download a zipfile and immediately unpack selected content.
 
-        :param url:
-        :param paths:
+        :param url: URL from where to download the archive.
+        :param paths: Path names to be compared to `ZipInfo.filename`.
         :param kw:
         """
         with self.temp_download(url, 'ds.zip', log=kw.pop('log', None)) as zipp:

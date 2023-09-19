@@ -114,9 +114,12 @@ class Dataset(object):
         subprocess.check_call(
             'git -C {} submodule update --remote'.format(self.dir.resolve()), shell=True)
 
-    def cldf_writer(self, args, cldf_spec=None, clean=True) -> CLDFWriter:
+    def cldf_writer(self,
+                    args: argparse.Namespace,
+                    cldf_spec: typing.Optional[typing.Union[str, CLDFSpec]] = None,
+                    clean: bool = True) -> CLDFWriter:
         """
-        :param args:
+        :param args: Namespace passed in when initializing the `CLDFWriter` instance.
         :param cldf_spec: Key of the relevant `CLDFSpec` in `Dataset.cldf_specs`
         :param clean: `bool` flag signaling whether to clean the CLDF dir before writing. \
         Note that `False` must be passed for subsequent calls to `cldf_writer` in case the \
@@ -129,9 +132,10 @@ class Dataset(object):
             cldf_spec = self.cldf_specs_dict[cldf_spec]
         return cldf_spec.get_writer(args=args, dataset=self, clean=clean)
 
-    def cldf_reader(self, cldf_spec: typing.Union[str, None] = None) -> pycldf.Dataset:
+    def cldf_reader(self,
+                    cldf_spec: typing.Union[str, CLDFSpec, None] = None) -> pycldf.Dataset:
         """
-        :param cldf_spec:
+        :param cldf_spec: Key of the relevant `CLDFSpec` in `Dataset.cldf_specs`.
         :return: a `pycldf.Dataset` instance, for read-access to the CLDF data.
         """
         if not isinstance(cldf_spec, CLDFSpec):

@@ -3,6 +3,8 @@ Dataset metadata
 """
 import json
 import collections
+import pathlib
+import typing
 
 import attr
 from clldutils import licenses
@@ -375,7 +377,7 @@ class Metadata(object):
         metadata=dict(elicit=True, required=True))
 
     @classmethod
-    def elicit(cls):
+    def elicit(cls) -> 'Metadata':
         """
         Factory method, called when creating a new dataset directory.
         """
@@ -389,7 +391,7 @@ class Metadata(object):
         return cls(**kw)
 
     @classmethod
-    def from_file(cls, fname):
+    def from_file(cls, fname: pathlib.Path) -> 'Metadata':
         """
         Factory method, called when instantiating a `Dataset` object.
         """
@@ -399,21 +401,21 @@ class Metadata(object):
             except json.decoder.JSONDecodeError as e:  # pragma: no cover
                 raise ValueError('Invalid JSON file: {}\n{}'.format(fname.resolve(), e))
 
-    def write(self, fname):
+    def write(self, fname: pathlib.Path):
         with fname.open('w', encoding='utf-8') as fp:
             return json.dump(attr.asdict(self), fp, indent=4)
 
     @property
-    def known_license(self):
+    def known_license(self) -> typing.Union[None, licenses.License]:
         if self.license:
             return licenses.find(self.license)
 
     @property
-    def zenodo_license(self):
+    def zenodo_license(self) -> str:
         if self.known_license and self.known_license.id in LICENSES:
             return self.known_license.id
 
-    def common_props(self):
+    def common_props(self) -> typing.Dict[str, object]:
         """
         The metadata as JSON-LD object suitable for inclusion in CLDF metadata.
         """
@@ -432,7 +434,7 @@ class Metadata(object):
             res['dc:license'] = self.license
         return res
 
-    def markdown(self):
+    def markdown(self) -> str:
         lines = [
             '# {0}\n'.format(self.title or 'Dataset {0}'.format(self.id)),
             '## How to cite\n\nIf you use these data please cite',
@@ -464,7 +466,7 @@ class Metadata(object):
         return '\n'.join(lines)
 
 
-def get_creators_and_contributors(text, strict=True):
+def get_creators_and_contributors(text, strict=True) -> typing.Tuple[list, list]:
     ctypes = {c.lower(): c for c in CONTRIBUTOR_TYPES}
     creators, contributors = [], []
     # Read first table in CONTRIBUTORS.md
