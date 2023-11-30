@@ -2,6 +2,7 @@ import sys
 import pathlib
 import subprocess
 import importlib.metadata
+import platform
 
 
 def get_entrypoints(group):
@@ -24,8 +25,15 @@ def iter_requirements():
     """
     imported = set(m.split('.')[0].lower() for m in sys.modules.keys())
     pip = pathlib.Path(sys.executable).parent / 'pip'
+
+    if platform.system() == "Windows":
+        pip = pip.with_suffix(".exe")
+
     if not pip.exists():  # pragma: no cover
         pip = pathlib.Path(sys.executable).parent / 'pip3'
+
+        if platform.system() == "Windows":
+            pip = pip.with_suffix(".exe")
     if not pip.exists():  # pragma: no cover
         return
 
