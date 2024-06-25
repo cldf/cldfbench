@@ -27,7 +27,7 @@ def iter_requirements():
     pip = pathlib.Path(sys.executable).parent / 'pip'
 
     if platform.system() == "Windows":
-        pip = pip.with_suffix(".exe")
+        pip = pip.with_suffix(".exe")  # pragma: no cover
 
     if not pip.exists():  # pragma: no cover
         pip = pathlib.Path(sys.executable).parent / 'pip3'
@@ -46,7 +46,7 @@ def iter_requirements():
         if '==' in req:
             pkg = req.split('==')[0]
         elif 'egg=' in req:
-            pkg = req.split('egg=')[-1]
+            pkg = req.split('egg=')[-1]  # pragma: no cover
         else:
             continue  # pragma: no cover
         if (pkg.lower() in imported) or (pkg.lower().replace('python-', '') in imported):

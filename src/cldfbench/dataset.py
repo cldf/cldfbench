@@ -7,6 +7,11 @@ import argparse
 import importlib
 import subprocess
 from datetime import datetime
+try:  # pragma: no cover
+    from datetime import UTC
+    now = lambda: datetime.now(UTC)
+except ImportError:  # pragma: no cover
+    now = lambda: datetime.utcnow()
 
 import pycldf
 from clldutils.path import sys_path
@@ -156,7 +161,7 @@ class Dataset(object):
         self.raw_dir.mkdir(exist_ok=True)
         self.cmd_download(args)
         (self.raw_dir / 'README.md').write_text(
-            'Raw data downloaded {0}'.format(datetime.utcnow().isoformat()), encoding='utf8')
+            'Raw data downloaded {0}'.format(now().isoformat()), encoding='utf8')
 
     def cmd_download(self, args: argparse.Namespace):
         """
