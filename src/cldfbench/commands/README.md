@@ -7,11 +7,15 @@ Code to be run as subcommand in the `cldfbench` cli must comply with the followi
    argument. This function should implement the command's functionality.
 3. The module may provide a function `register`, accepting a `argparse.Parser` instance, to add
    custom cli parser functionality.
-4. The module must be part of an installed Python package, which is published via an entry point
+4. The module must be part of an installed Python package, which is published via an entry point, e.g.
+   by adding the following arguments to the `setuptools.setup` call in `setup.py`:
    ```python
-    'cldfbench.commands': [
-        'commands=path.to.package',
-    ],
+   packages=setuptools.find_packages(where='.'),
+   entry_points={
+        'cldfbench.commands': [
+            'commands=path.to.package',
+        ],
+   },
    ```
 
 A command's `register` function can use packaged functionality from `cldfbench.cli_util`, e.g.
