@@ -9,9 +9,9 @@ import subprocess
 from datetime import datetime
 try:  # pragma: no cover
     from datetime import UTC
-    now = lambda: datetime.now(UTC)
+    now = lambda: datetime.now(UTC)  # noqa: E731
 except ImportError:  # pragma: no cover
-    now = lambda: datetime.utcnow()
+    now = lambda: datetime.utcnow()  # noqa: E731
 
 import pycldf
 from clldutils.path import sys_path
