@@ -1,5 +1,11 @@
 # Changes
 
+## [1.14.1] - 2025-01-24
+
+- Fixed bug whereby paths linked from the CLDF README would not be adapted
+  appropriately for non-default CLDF locations.
+
+
 ## [1.14.0] - 2023-09-19
 
 - Added method to Glottolog API to retrieve language-level languoids, e.g.
