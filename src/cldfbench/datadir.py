@@ -26,7 +26,7 @@ try:
 except ImportError:  # pragma: no cover
     openpyxl = None
 
-import pybtex.database
+import simplepybtex.database
 from csvw import dsv
 from clldutils.misc import xmlchars, slug
 from clldutils.path import TemporaryDirectory
@@ -206,7 +206,7 @@ class DataDir(type(pathlib.Path())):
 
     def read_bib(self,
                  fname: typing.Union[str, pathlib.Path] = 'sources.bib') -> typing.List[Source]:
-        bib = pybtex.database.parse_string(self.read(fname), bib_format='bibtex')
+        bib = simplepybtex.database.parse_string(self.read(fname), bib_format='bibtex')
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
 
     def ods2csv(self,
