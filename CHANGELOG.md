@@ -1,5 +1,10 @@
 # Changes
 
+## [1.14.2] - 2025-08-07
+
+- Fixed issue where `cldfbench` relied on `pybtex` without explicitly requiring it.
+
+
 ## [1.14.1] - 2025-01-24
 
 - Fixed bug whereby paths linked from the CLDF README would not be adapted
