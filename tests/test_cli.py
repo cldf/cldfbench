@@ -159,7 +159,7 @@ def test_catalog_from_config(glottolog_dir, tmpds, mocker, tmp_path, fixtures_di
 
     # First case: get a "good" value from comfig:
     mocker.patch(
-        'cldfcatalog.config.appdirs',
+        'cldfcatalog.config.platformdirs',
         mocker.Mock(user_config_dir=mocker.Mock(return_value=str(tmp_path))))
     mocker.patch('cldfbench.commands.catconfig.confirm', mocker.Mock(return_value=False))
     cli.main(['catconfig', '--glottolog', str(glottolog_dir)])
