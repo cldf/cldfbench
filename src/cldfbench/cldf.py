@@ -115,7 +115,11 @@ class CLDFWriter(object):
             if self.dataset.repo:
                 if self.dataset.repo.url:
                     self.cldf.properties.setdefault('dcat:accessURL', self.dataset.repo.url)
-                srcs.append(self.dataset.repo.json_ld())
+                try:
+                    srcs.append(self.dataset.repo.json_ld())
+                except:  # pragma: no cover  # noqa: E722
+                    # If a git repository has no commit, git describe fails.
+                    pass
         if self.args:
             # We inspect the cli arguments to see whether some `Catalog`'s were used.
             for cat in vars(self.args).values():

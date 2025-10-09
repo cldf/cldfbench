@@ -1,5 +1,10 @@
 # Changes
 
+## unreleased
+
+- Fixed issue where `makecldf` could not be run on a dataset in a git repos with no commits.
+
+
 ## [1.14.2] - 2025-08-07
 
 - Fixed issue where `cldfbench` relied on `pybtex` without explicitly requiring it.
