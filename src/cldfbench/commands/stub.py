@@ -9,4 +9,4 @@ def register(parser):  # pylint: disable=C0116
 
 
 def run(args):  # pragma: no cover  # pylint: disable=C0116
-    pass
+    print(args)

@@ -6,11 +6,12 @@ import collections
 
 from cldfbench import scaffold
 
-_templates = None
+_templates = None  # pylint: disable=invalid-name
 
 
 def get_template_dict():
-    global _templates
+    """Read available dataset templates."""
+    global _templates  # pylint: disable=W0603
     if _templates is None:
         _templates = collections.OrderedDict(scaffold.iter_scaffolds())
     return _templates

@@ -28,9 +28,9 @@ def run(args):  # pylint: disable=C0116
         creators, contributors = get_creators_and_contributors(
             contribs.read_text(encoding='utf8') if contribs.exists() else '', strict=False)
         if creators:
-            md['creators'] = [contrib(p) for p in creators]
+            md['creators'] = [_contrib(p) for p in creators]
         if contributors:
-            md["contributors"] = [contrib(p) for p in contributors]
+            md["contributors"] = [_contrib(p) for p in contributors]
         communities = [r["identifier"] for r in md.get("communities", [])] + \
                       [c.strip() for c in nfilter(args.communities.split(','))]
         if communities:
@@ -45,14 +45,14 @@ def run(args):  # pylint: disable=C0116
             }
         )
         if dataset.metadata.citation:
-            md['description'] = "<p>Cite the source of the dataset as:</p>\n\n" \
-                                "<blockquote>\n<p>{}</p>\n</blockquote>".format(
-                html.escape(dataset.metadata.citation))
+            md['description'] = \
+                f"<p>Cite the source of the dataset as:</p>\n\n" \
+                f"<blockquote>\n<p>{html.escape(dataset.metadata.citation)}</p>\n</blockquote>"
         if dataset.metadata.zenodo_license:
             md['license'] = {'id': dataset.metadata.zenodo_license}
 
 
-def contrib(d):
+def _contrib(d):
     return {
         k: v for k, v in d.items()
         if k in {'name', 'affiliation', 'orcid', 'type'} and (v or k != 'orcid')}

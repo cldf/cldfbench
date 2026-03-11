@@ -23,36 +23,33 @@ General workflow:
      last slash)
        - it is necessary to log in via correct zenodo user and to have the corresponding access
          token in your environment
-       - it is only necessary to fill in required fields with provisional data - see step (6)
- (6) call cldfbench media --upload-zenodo deposit_ID
-       to update the metadata of the previous uploaded reelease
 """
+import dataclasses
 import os
+import re
 import html
 import time
 import pathlib
 import zipfile
+import itertools
 import threading
 import collections
 from datetime import datetime
 from urllib.request import urlretrieve
 
-from cldfbench.cli_util import add_dataset_spec, get_dataset
-from cldfbench.datadir import DataDir
-from cldfbench.metadata import get_creators_and_contributors
 from clldutils import jsonlib
 from clldutils.clilib import PathType, ParserError
 from clldutils.misc import format_size, nfilter
 from clldutils.path import md5, git_describe
 from csvw.dsv import UnicodeWriter
 from csvw.datatypes import anyURI
-
-from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
-from zenodoclient.models import PUBLISHED
-
 import tqdm
 
+from cldfbench.cli_util import add_dataset_spec, get_dataset
+from cldfbench.datadir import DataDir
+from cldfbench.metadata import get_creators_and_contributors
 
+ZENODO_DOI_PATTERN = re.compile(r'10\.5281/zenodo\.(?P<id>[0-9]+)$')
 MEDIA = 'media'
 ZENODO_FILE_NAME = 'zenodo.json'
 COMMUNITIES = ['lexibank']
@@ -115,13 +112,6 @@ def register(parser):  # pylint: disable=C0116
         default=False,
     )
     parser.add_argument(
-        '--update-zenodo',
-        help="Deposit ID (number after DOI's last slash) to update metadata by using ID_{0}/{1}. "
-             "Cannot be used with --create-release.".format(
-            MEDIA, ZENODO_FILE_NAME),  # noqa: E122
-        default=None,
-    )
-    parser.add_argument(
         '--debug',
         help='Switch to work with max. 500 media files and with sandbox.zenodo for testing ONLY',
         action='store_true',
@@ -145,81 +135,81 @@ def _create_download_thread(url, target):
     download_threads.append(download_thread)
 
 
-def run(args):  # pylint: disable=C0116
-    ds = get_dataset(args)
-    ds_cldf = ds.cldf_reader()
-    release_dir = args.out / '{0}_{1}'.format(ds.id, MEDIA)
-
-    media_table = ds_cldf.get('MediaTable', ds_cldf.get('media.csv', None))
-
+def _valid_input(media_table, args) -> bool:
     if media_table is None:  # pragma: no cover
         args.log.error('Dataset has no MediaTable or media.csv')
-        raise ParserError
-    if args.parent_doi and not Zenodo.DOI_PATTERN.match(args.parent_doi):
+        return False
+    if args.parent_doi and not ZENODO_DOI_PATTERN.match(args.parent_doi):
         args.log.error('Invalid passed DOI')
-        raise ParserError
-    if args.update_zenodo:  # pragma: no cover
-        if not release_dir.exists():
-            args.log.error('"{0}" not found -- run --create-release first?'.format(
-                release_dir))
-            raise ParserError
-        if not (release_dir / ZENODO_FILE_NAME).exists():
-            args.log.error('"{0}" not found -- run --create-release first?'.format(
-                release_dir / ZENODO_FILE_NAME))
-            raise ParserError
-        if args.create_release:
-            args.log.error('You cannot create the release and update zenodo at the same time.')
-            raise ParserError
+        return False
     if args.create_release:
         if not args.parent_doi:
             args.log.error('The corresponding DOI is required (via --parent-doi).')
-            raise ParserError
+            return False
+    return True
 
-    mime_types = None
-    if args.mimetype:
-        mime_types = [m.strip() for m in nfilter(args.mimetype.split(','))]
 
-    size = collections.Counter()
-    number = collections.Counter()
+@dataclasses.dataclass
+class FileStats:
+    size: dict[str, int] = dataclasses.field(default_factory=collections.Counter)
+    number: dict[str, int] = dataclasses.field(default_factory=collections.Counter)
+    extensions: set = dataclasses.field(default_factory=set)
+    paths: list[pathlib.Path] = dataclasses.field(default_factory=list)
+
+    def update(self, row, f_ext):
+        m = f"{row['mimetype']} ({f_ext})"
+        self.size[m] += int(row['size'])
+        self.number.update([m])
+        self.extensions.add(f_ext.lower())
+
+    def print(self):
+        for k, v in self.size.most_common():
+            print('\t'.join([k.ljust(20), str(self.number[k]), format_size(v)]))
+
+
+def run(args):  # pylint: disable=C0116
+    ds = get_dataset(args)
+    ds_cldf = ds.cldf_reader()
+
+    media_table = ds_cldf.get('MediaTable', ds_cldf.get('media.csv', None))
+    if not _valid_input(media_table, args):
+        raise ParserError
+
+    mime_types = [m.strip() for m in nfilter(args.mimetype.split(','))] if args.mimetype else []
+
     media_dir = args.out / MEDIA
-    media = []
-    used_file_extensions = set()
+    media_dir.mkdir(exist_ok=True)
+    stats = FileStats()
 
-    if not args.update_zenodo:
-        media_dir.mkdir(exist_ok=True)
-        with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
-            for i, row in enumerate(tqdm.tqdm(
-                    [r for r in media_table], desc='Getting {0} items'.format(MEDIA))):
-                row['URL'] = url = anyURI.to_string(ds_cldf.get_row_url(media_table, row))
-                #
-                # FIXME: Don't assume URLs without query!
-                #
-                f_ext = url.split('.')[-1].lower()
-                if args.debug and i > 500:
-                    break  # pragma: no cover
-                if (mime_types is None) or f_ext in mime_types\
-                        or any(row['mimetype'].startswith(x) for x in mime_types):
-                    if args.list:
-                        m = '{0} ({1})'.format(row['mimetype'], f_ext)
-                        size[m] += int(row['size'])
-                        number.update([m])
-                    else:
-                        used_file_extensions.add(f_ext.lower())
-                        d = media_dir / row['ID'][:2]
-                        d.mkdir(exist_ok=True)
-                        fn = '.'.join([row['ID'], f_ext])
-                        target = d / fn
-                        row['local_path'] = pathlib.Path(row['ID'][:2]) / fn
-                        if i == 0:
-                            w.writerow(row)
-                        w.writerow(row.values())
-                        media.append(target)
-                        if (not target.exists()) or md5(target) != row['ID']:
-                            _create_download_thread(url, target)
+    with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
+        for i, row in enumerate(tqdm.tqdm(media_table, desc='Getting media items')):
+            if args.debug and i > 500:
+                break  # pragma: no cover
+            row['URL'] = anyURI.to_string(ds_cldf.get_row_url(media_table, row))
+            #
+            # FIXME: Don't assume URLs without query!
+            #
+            f_ext = row['URL'].split('.')[-1].lower()
+            if any((not mime_types,
+                    f_ext in mime_types,
+                    any(row['mimetype'].startswith(x) for x in mime_types))):
+                stats.update(row, f_ext)
+                if not args.list:
+                    d = media_dir / row['ID'][:2]
+                    d.mkdir(exist_ok=True)
+                    target = d / '.'.join([row['ID'], f_ext])
+                    row['local_path'] = pathlib.Path(row['ID'][:2]) / target.name
+                    if i == 0:
+                        w.writerow(row)
+                    w.writerow(row.values())
+                    stats.paths.append(target)
+                    if (not target.exists()) or md5(target) != row['ID']:
+                        _create_download_thread(row['URL'], target)
+
+    stats.paths.append(media_dir / INDEX_CSV)
 
     if args.list:
-        for k, v in size.most_common():
-            print('\t'.join([k.ljust(20), str(number[k]), format_size(v)]))
+        stats.print()
         return
 
     # Waiting for the download threads to finish
@@ -228,129 +218,90 @@ def run(args):  # pylint: disable=C0116
             t.join()
 
     if args.create_release:
-        assert media_dir.exists(), 'No folder "{0}" found in {1}'.format(MEDIA, media_dir.resolve())
+        release_dir = args.out / f'{ds.id}_{MEDIA}'
         release_dir.mkdir(exist_ok=True)
-        media.append(media_dir / INDEX_CSV)
+        _zip_media(release_dir, stats.paths, args)
+        _release_metadata(release_dir, ds, args, stats.extensions)
 
-        try:
-            zipf = zipfile.ZipFile(
-                str(release_dir / '{0}.zip'.format(MEDIA)), 'w', zipfile.ZIP_DEFLATED)
-            fp = args.out
-            for f in tqdm.tqdm(media, desc='Creating {0}.zip'.format(MEDIA)):
-                zipf.write(str(f), str(os.path.relpath(str(f), str(fp))))
-            zipf.close()
-        except Exception as e:  # pragma: no cover
-            args.log.error(e)
-            raise
 
-        def _contrib(d):
-            return {k: v for k, v in d.items() if k in {'name', 'affiliation', 'orcid', 'type'}}
+def _zip_media(release_dir, media, args):
+    try:
+        with zipfile.ZipFile(release_dir / f'{MEDIA}.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+            for f in tqdm.tqdm(media, desc=f'Creating {MEDIA}.zip'):
+                zf.write(f, str(os.path.relpath(str(f), str(args.out))))
+    except Exception as e:  # pragma: no cover
+        args.log.error(e)
+        raise
 
-        version_v = git_describe('.').split('-')[0]
-        version = version_v.replace('v', '')
-        git_url = [r for r in ds.repo.repo.remotes if r.name == 'origin'][0].url.replace('.git', '')
-        with jsonlib.update(
-                release_dir / ZENODO_FILE_NAME, indent=4, default=collections.OrderedDict()) as md:
-            contribs = ds.dir / 'CONTRIBUTORS.md'
-            creators, contributors = get_creators_and_contributors(
-                contribs.read_text(encoding='utf8') if contribs.exists() else '', strict=False)
-            if creators:
-                md['creators'] = [_contrib(p) for p in creators]
-            if contributors:
-                md['contributors'] = [_contrib(p) for p in contributors]
-            communities = [r["identifier"] for r in md.get("communities", [])] + \
-                [c.strip() for c in nfilter(args.communities.split(','))] + \
-                COMMUNITIES
-            if communities and not args.debug:
-                md['communities'] = [
-                    {"identifier": community_id} for community_id in sorted(set(communities))]
-            md.update(
-                {
-                    'title': '{0} {1} Files'.format(ds.metadata.title, MEDIA.title()),
-                    'access_right': 'open',
-                    'keywords': sorted(set(md.get('keywords', []) + ['linguistics'])),
-                    'upload_type': 'dataset',
-                    'publication_date': datetime.today().strftime('%Y-%m-%d'),
-                    'version': version,
-                    'related_identifiers': [
-                        {
-                            'scheme': 'url',
-                            'identifier': '{0}/tree/{1}'.format(git_url, version_v),
-                            'relation': 'isSupplementTo'
-                        },
-                    ],
-                }
-            )
-            if args.parent_doi:
-                md['related_identifiers'].append({
-                    'scheme': 'doi', 'identifier': args.parent_doi, 'relation': 'isPartOf'})
-                supplement_to = " - Supplement to dataset " \
-                                "<a href='https://doi.org/{0}'>{1}</a> ".format(
-                    args.parent_doi, ds.metadata.title)  # noqa: E122
-            if ds.metadata.url:
-                md['related_identifiers'].append({
-                    'scheme': 'url',
-                    'identifier': ds.metadata.url,
-                    'relation': 'isAlternateIdentifier'})
 
-            formats = ', '.join(sorted(used_file_extensions))
-            descr = '<br /><br />' + ds.metadata.description if ds.metadata.description else ''
-            online_url, online = '', ''
-            if ds.metadata.url:
-                online_url = ds.metadata.url
-                online = "<br /><br />Available online at: <a href='{0}'>{0}</a>".format(online_url)
-            md['description'] = html.escape(DESCRIPTION.format(
-                url=online_url,
-                formats=' ({0})'.format(formats) if formats else '',
-                title=md['title'],
-                supplement_to=supplement_to,
-                descr=descr,
-                online=online))
+def _release_metadata(release_dir, ds, args, used_file_extensions):
+    version_v = git_describe('.').split('-')[0]
+    git_url = [r for r in ds.repo.repo.remotes if r.name == 'origin'][0].url.replace('.git', '')
+    with (jsonlib.update(
+            release_dir / ZENODO_FILE_NAME, indent=4, default=collections.OrderedDict()) as md):
+        contribs = ds.dir / 'CONTRIBUTORS.md'
+        creators, contributors = get_creators_and_contributors(
+            contribs.read_text(encoding='utf8') if contribs.exists() else '', strict=False)
+        if creators:
+            md['creators'] = [_contrib(p) for p in creators]
+        if contributors:
+            md['contributors'] = [_contrib(p) for p in contributors]
+        communities = list(itertools.chain(
+            [r["identifier"] for r in md.get("communities", [])],
+            [c.strip() for c in nfilter(args.communities.split(','))],
+            COMMUNITIES))
+        if communities and not args.debug:
+            md['communities'] = [
+                {"identifier": community_id} for community_id in sorted(set(communities))]
+        md.update(
+            {
+                'title': f'{ds.metadata.title} {MEDIA.title()} Files',
+                'access_right': 'open',
+                'keywords': sorted(set(md.get('keywords', []) + ['linguistics'])),
+                'upload_type': 'dataset',
+                'publication_date': datetime.today().strftime('%Y-%m-%d'),
+                'version': version_v.replace('v', ''),
+                'related_identifiers': [],
+            }
+        )
+        _add_rel_id(md, 'url', f'{git_url}/tree/{version_v}', 'isSupplementTo')
 
-            license_md = ''
-            if ds.metadata.zenodo_license:
-                md['license'] = {'id': ds.metadata.zenodo_license}
-                license_md = LICENCE.format(ds.metadata.zenodo_license)
+        supplement_to = ''
+        if args.parent_doi:
+            _add_rel_id(md, 'doi', args.parent_doi, 'isPartOf')
+            supplement_to = f" - Supplement to dataset " \
+                            f"<a href='https://doi.org/{args.parent_doi}'>{ds.metadata.title}</a> "
+        if ds.metadata.url:
+            _add_rel_id(md, 'url', ds.metadata.url, 'isAlternateIdentifier')
 
-            DataDir(release_dir).write('README.md', README.format(
-                title=md['title'],
-                doi='https://doi.org/{0}'.format(args.parent_doi),
-                ds_title=ds.metadata.title,
-                license=license_md,
-                formats=' ({0})'.format(formats) if formats else '',
-                media=MEDIA,
-                index=INDEX_CSV))
+        formats = ', '.join(sorted(used_file_extensions))
+        md['description'] = html.escape(DESCRIPTION.format(
+            url=ds.metadata.url or '',
+            formats=' ({formats})' if formats else '',
+            title=md['title'],
+            supplement_to=supplement_to,
+            descr='<br /><br />' + ds.metadata.description if ds.metadata.description else '',
+            online=f"<br /><br />Available online at: "
+                   f"<a href='{ds.metadata.url}'>{ds.metadata.url}</a>" if ds.metadata.url else ''))
 
-    if args.update_zenodo:  # pragma: no cover
-        md = jsonlib.load(release_dir / ZENODO_FILE_NAME)
+        if ds.metadata.zenodo_license:
+            md['license'] = {'id': ds.metadata.zenodo_license}
 
-        if args.debug:
-            api_url = API_URL_SANDBOX
-            access_token = os.environ.get('ZENODO_SANDBOX_ACCESS_TOKEN')
-        else:
-            api_url = API_URL
-            access_token = ACCESS_TOKEN
-        zenodo_url = api_url.replace('api/', '')
+        DataDir(release_dir).write('README.md', README.format(
+            title=md['title'],
+            doi=f'https://doi.org/{args.parent_doi}',
+            ds_title=ds.metadata.title,
+            license=LICENCE.format(
+                ds.metadata.zenodo_license) if ds.metadata.zenodo_license else '',
+            formats=f' ({formats})' if formats else '',
+            media=MEDIA,
+            index=INDEX_CSV))
 
-        args.log.info('Updating Deposit ID {0} on {1} with:'.format(args.update_zenodo, zenodo_url))
-        api = Zenodo(api_url=api_url, access_token=access_token)
-        try:
-            rec = api.record_from_id('{0}record/{1}'.format(zenodo_url, args.update_zenodo))
-        except Exception as e:
-            args.log.error('Check connection and credentials for accessing Zenodo.\n{0}'.format(e))
-            return
-        latest_version = rec.links['latest'].split('/')[-1]
-        if latest_version != args.update_zenodo:
-            args.log.warn('Passed deposit ID does not refer to latest version {0}!'.format(
-                latest_version))
-        args.log.info('  DOI:     ' + rec.metadata.doi)
-        args.log.info('  Title:   ' + rec.metadata.title)
-        args.log.info('  Version: ' + rec.metadata.version)
-        args.log.info('  Date:    ' + rec.metadata.publication_date)
-        args.log.info('  Files:   ' + ', '.join([f.key for f in rec.files]))
-        p = input("Proceed? [y/N]: ")
-        if p.lower() == 'y':
-            dep = api.update_deposit(args.update_zenodo, **md)
-            if dep.state != PUBLISHED:
-                api.publish_deposit(dep)
-            args.log.info('Updated successfully')
+
+def _contrib(d):
+    return {k: v for k, v in d.items() if k in {'name', 'affiliation', 'orcid', 'type'}}
+
+
+def _add_rel_id(md, scheme, identifier, relation):
+    md['related_identifiers'].append(
+        {'scheme': scheme, 'identifier': identifier, 'relation': relation})
