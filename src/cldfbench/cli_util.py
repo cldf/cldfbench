@@ -1,17 +1,23 @@
+"""
+Utilities used in cldfbench commands.
+"""
 import json
-import typing
+import logging
+import pathlib
+from typing import Union, Any, Optional
 from time import time
+import functools
 import argparse
 
 from clldutils.clilib import ParserError
-import termcolor
-
 import pycldf
 
 import cldfbench
 from cldfbench import ENTRY_POINT
 from cldfbench import get_dataset as _get
 from cldfbench import get_datasets as _gets
+from cldfbench.catalogs import Catalog
+from .util import colored
 
 __all__ = ['DatasetNotFoundException',
            'add_entry_point', 'add_dataset_spec', 'add_catalog_spec',
@@ -19,13 +25,15 @@ __all__ = ['DatasetNotFoundException',
            'with_dataset', 'with_datasets']
 
 IGNORE_MISSING = '-'
+red = functools.partial(colored, 'red')
 
 
 class DatasetNotFoundException(Exception):
-    pass
+    """Custom exception which can be used by dataset locators."""
 
 
 def add_entry_point(parser: argparse.ArgumentParser, ep: str = ENTRY_POINT):
+    """Add option to specify an entry point group."""
     parser.add_argument(
         '--entry-point',
         help='Name of entry_points to identify datasets',
@@ -70,11 +78,10 @@ def get_dataset(args: argparse.Namespace) -> cldfbench.Dataset:
     ds = _get(args.dataset, ep=args.entry_point)
     if ds:
         return ds
-    raise ParserError(termcolor.colored(
-        '\nInvalid dataset spec: <{0}> {1}\n'.format(args.entry_point, args.dataset), "red"))
+    raise ParserError(red(f'\nInvalid dataset spec: <{args.entry_point}> {args.dataset}\n'))
 
 
-def get_datasets(args: argparse.Namespace) -> typing.List[cldfbench.Dataset]:
+def get_datasets(args: argparse.Namespace) -> list[cldfbench.Dataset]:
     """
     Get the `cldfbench.Dataset` s specified by `args`.
 
@@ -85,8 +92,7 @@ def get_datasets(args: argparse.Namespace) -> typing.List[cldfbench.Dataset]:
     res = _gets(args.dataset, ep=args.entry_point, glob=args.glob)
     if res:
         return res
-    raise ParserError(termcolor.colored(
-        '\nInvalid dataset spec: <{0}> {1}\n'.format(args.entry_point, args.dataset), "red"))
+    raise ParserError(red(f'\nInvalid dataset spec: <{args.entry_point}> {args.dataset}\n'))
 
 
 def get_cldf_dataset(args: argparse.Namespace, cldf_spec=None) -> pycldf.Dataset:
@@ -129,17 +135,17 @@ def add_catalog_spec(
     parser.add_argument(
         '--' + name,
         metavar=name.upper(),
-        help='Path to repository clone of {0} data'.format(name.capitalize()),
+        help=f'Path to repository clone of {name.capitalize()} data',
         default=default)
     if with_version:
         parser.add_argument(
-            '--{0}-version'.format(name),
-            help='Version of {0} data to checkout'.format(name.capitalize()),
+            f'--{name}-version',
+            help=f'Version of {name.capitalize()} data to checkout',
             default=None)
 
 
-def with_dataset(args: argparse.Namespace, func: typing.Union[callable, str], dataset=None) \
-        -> typing.Any:
+def with_dataset(args: argparse.Namespace, func: Union[callable, str], dataset=None) \
+        -> Any:
     """
     Run a callable, passing a dataset and `args` as arguments, returning it's result.
 
@@ -155,11 +161,11 @@ def with_dataset(args: argparse.Namespace, func: typing.Union[callable, str], da
     if isinstance(func, str):
         func_ = getattr(dataset, '_cmd_' + func, getattr(dataset, 'cmd_' + func, None))
         if not func_:
-            raise ParserError('Dataset {0} has no {1} command'.format(dataset.id, func))
+            raise ParserError(f'Dataset {dataset.id} has no {func} command')
         func, arg = func_, []
-    args.log.info('running {0} on {1} ...'.format(getattr(func, '__name__', func), dataset.id))
+    args.log.info('running %s on %s ...', getattr(func, '__name__', func), dataset.id)
     res = func(*arg, args)
-    args.log.info('... done %s [%.1f secs]' % (dataset.id, time() - s))
+    args.log.info('... done %s [%.1f secs]', dataset.id, time() - s)
     return res
 
 
@@ -173,3 +179,16 @@ def with_datasets(args, func):
     for ds in get_datasets(args):
         res.append(with_dataset(args, func, dataset=ds))
     return res
+
+
+def instantiate_catalog(
+        cat: type,
+        path: Union[str, pathlib.Path],
+        log: logging.Logger,
+) -> Optional[Catalog]:
+    """Try to instantiate a catalog."""
+    try:
+        return cat(path)
+    except ValueError as e:  # pragma: no cover
+        log.warning(str(e))
+        return None

@@ -5,7 +5,7 @@ from cldfbench.cli_util import with_dataset, add_dataset_spec, add_catalog_spec
 from cldfbench.commands import cldfreadme, zenodo
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     parser.add_argument(
         '--with-cldfreadme',
         help="Run 'cldfbench cldfreadme' after successfull CLDF creation",
@@ -28,7 +28,7 @@ def register(parser):
     add_catalog_spec(parser, 'glottolog')
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     with_dataset(args, 'makecldf')
     if getattr(args, 'with_cldfreadme', None):
         cldfreadme.run(args)

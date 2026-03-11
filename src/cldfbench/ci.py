@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.12]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -46,14 +46,15 @@ def build_status_badge(dataset):
     """
     if dataset.repo and dataset.repo.github_repo:  # pragma: no cover
         if dataset.dir.joinpath('.github/workflows', CONFIG_FNAME).exists():
-            return "[![CLDF validation]" \
-                "(https://github.com/{0}/workflows/CLDF-validation/badge.svg)]" \
-                "(https://github.com/{0}/actions?query=workflow%3ACLDF-validation)".format(
-                    dataset.repo.github_repo)
+            repo_url = f"https://github.com/{dataset.repo.github_repo}"
+            return f"[![CLDF validation]" \
+                f"({repo_url}/workflows/CLDF-validation/badge.svg)]" \
+                f"({repo_url}/actions?query=workflow%3ACLDF-validation)"
     return ''
 
 
-def setup(dataset, force=False):
+def setup(dataset, force=False) -> bool:
+    """Tries to write a CLDF test workflow to the .github directory."""
     yml = dataset.dir / '.github' / 'workflows' / CONFIG_FNAME
     if ((not dataset.repo) or (not dataset.repo.github_repo) or yml.exists()) and not force:
         return False  # pragma: no cover
@@ -68,8 +69,8 @@ def setup(dataset, force=False):
 
     tests = []
     for spec in dataset.cldf_specs_dict.values():
-        tests.append('        pytest --cldf-metadata={} test.py'.format(
-            dataset.cldf_dir.relative_to(dataset.dir) / spec.metadata_fname))
+        rel_md_path = dataset.cldf_dir.relative_to(dataset.dir) / spec.metadata_fname
+        tests.append(f'        pytest --cldf-metadata={rel_md_path} test.py')
 
     yml.write_text(CONFIG_YML % (branch, branch, '\n'.join(tests)), encoding='utf8')
     return True

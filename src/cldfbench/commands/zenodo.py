@@ -11,7 +11,7 @@ from cldfbench.cli_util import add_dataset_spec, get_dataset
 from cldfbench.metadata import get_creators_and_contributors
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser, multiple=True)
     parser.add_argument(
         '--communities',
@@ -20,7 +20,7 @@ def register(parser):
     )
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     dataset = get_dataset(args)
     with update(dataset.dir / '.zenodo.json', indent=4, default=collections.OrderedDict()) as md:
         modules = ['cldf:' + spec.module for spec in dataset.cldf_specs_dict.values()]

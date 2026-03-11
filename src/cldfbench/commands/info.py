@@ -4,7 +4,7 @@ Display basic info about a dataset
 from cldfbench.cli_util import with_datasets, add_dataset_spec
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser, multiple=True)
     parser.add_argument(
         '--cldf',
@@ -13,7 +13,7 @@ def register(parser):
         default=False)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     def _print(ds, args):
         if args.cldf:
             for cldf in ds.cldf_specs_dict.values():

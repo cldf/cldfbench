@@ -16,7 +16,7 @@ def get_template_dict():
     return _templates
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     templates = list(get_template_dict().keys())
     parser.add_argument(
         '--template',
@@ -30,7 +30,7 @@ def register(parser):
         default=pathlib.Path('.'))
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     tmpl = get_template_dict()[args.template]()
     md = tmpl.metadata.elicit()
     tmpl.render(args.out, md)

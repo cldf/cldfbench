@@ -13,8 +13,8 @@ import re
 import shutil
 import pathlib
 import warnings
-
-import attr
+import dataclasses
+from collections.abc import Generator
 
 import cldfbench
 from cldfbench.metadata import Metadata
@@ -23,18 +23,17 @@ from cldfbench.util import get_entrypoints
 __all__ = ['Template']
 
 
-def iter_scaffolds():
+def iter_scaffolds() -> Generator[tuple[str, type], None, None]:
+    """Yield registered cldfbench templates."""
     yield 'cldfbench', Template
     for ep in get_entrypoints('cldfbench.scaffold'):
         try:  # pragma: no cover
             yield ep.name, ep.load()
-        except Exception as e:  # pragma: no cover
-            warnings.warn(
-                '{0} loading cldfbench.scaffold {1}: {2}'.format(
-                    e.__class__.__name__, ep.name, e))
+        except Exception as e:  # pragma: no cover  # pylint: disable=W0718
+            warnings.warn(f'{e.__class__.__name__} loading cldfbench.scaffold {ep.name}: {e}')
 
 
-class Template(object):
+class Template:  # pylint: disable=R0903
     """A CLDF dataset suitable for curation in a GitHub repository"""
     prefix = cldfbench.__name__
     package = cldfbench.__name__
@@ -54,20 +53,24 @@ class Template(object):
     - assign the derived class to your template's `metadata` attribute.
 
     E.g.
-    >>> @attr.s
+    >>> @dataclasses.dataclass
     ... class CustomMetadata(Metadata):
-    ...     custom_var = attr.ib(default=None, metadata=dict(elicit=True))
+    ...     custom_var: str = dataclasses.field(default=None, metadata=dict(elicit=True))
     ...
     >>> class CustomTemplate(Template):
     ...     metadata = CustomMetadata
     """
     metadata = Metadata
 
-    def render(self, outdir, metadata):
-        # The cli will have used the class in `self.metadata` to elicit info from the user,
-        # and pass `self.metadata(...)` as `metadata`
+    def render(self, outdir: pathlib.Path, metadata: Metadata):
+        """
+        .. note::
 
-        ctx = attr.asdict(metadata)
+            The cli will have used the class in `self.metadata` to elicit info from the user,
+            and pass `self.metadata(...)` as `metadata`
+        """
+
+        ctx = dataclasses.asdict(metadata)
         ctx.update(prefix=self.prefix, package=self.package)
         if outdir.name != ctx['id']:
             outdir = outdir / ctx['id']

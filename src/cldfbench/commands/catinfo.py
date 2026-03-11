@@ -1,16 +1,20 @@
 """
 Display information about catalogs in the system
 """
-import termcolor
+import functools
 
 from cldfcatalog import Config
 
-from cldfbench.cli_util import add_catalog_spec
+from cldfbench.cli_util import add_catalog_spec, instantiate_catalog
 from cldfbench.catalogs import BUILTIN_CATALOGS
-from cldfbench.util import iter_aligned
+from cldfbench.util import iter_aligned, colored
 
 
-def register(parser):
+bold = functools.partial(colored, 'black', attrs=['bold'])
+bold_underlined = functools.partial(colored, 'black', attrs=['bold', 'underline'])
+
+
+def register(parser):  # pylint: disable=C0116
     for cat in BUILTIN_CATALOGS:
         add_catalog_spec(parser, cat.cli_name(), with_version=False)
     parser.add_argument(
@@ -21,19 +25,16 @@ def register(parser):
     parser.set_defaults(no_catalogs=True)
 
 
-def print_kv(k, v=''):
-    print('{0} {1}'.format(termcolor.colored('{0}:'.format(k), attrs=['bold']), v))
+def run(args):  # pylint: disable=C0116
+    def print_kv(k: str, v: str = ''):
+        print(f'{bold(str(k))}\t{v}')
 
-
-def run(args):
     cfg = Config.from_file()
     for cat in BUILTIN_CATALOGS:
         name = cat.cli_name()
 
         print()
-        print(termcolor.colored(
-            '{0} - https://github.com/{1}'.format(name, cat.__github__),
-            attrs=['bold', 'underline']))
+        print(bold_underlined(f'{name} - https://github.com/{cat.__github__}'))
         print()
 
         path, from_cfg = getattr(args, name), False
@@ -44,19 +45,17 @@ def run(args):
                 args.log.warning(str(e))
                 continue
 
-        try:
-            cat = cat(path)
-        except ValueError as e:  # pragma: no cover
-            args.log.warning(str(e))
+        catinst = instantiate_catalog(cat, path, args.log)
+        if not catinst:
             continue
 
-        print_kv('local clone', cat.dir.resolve())
+        print_kv('local clone', str(catinst.dir.resolve()))
         if from_cfg:
-            print_kv('config at', cfg.fname())
+            print_kv('config at', str(cfg.fname()))
         print_kv('versions')
-        for i, version in enumerate(iter_aligned(cat.iter_versions(), prefix='  ')):
-            if i < args.max_versions:
-                print(version)
+        versions = [v for i, v in enumerate(catinst.iter_versions()) if i < args.max_versions]
+        for version in iter_aligned(versions, prefix='  ', minspace=4):
+            print(version)
         if cat.__api__:
-            print_kv('API', '{0.__name__} {0.__version__}'.format(cat.__api_pkg__))
+            print_kv('API', f'{cat.__api_pkg__.__name__} {cat.__api_pkg__.__version__}')
         print()

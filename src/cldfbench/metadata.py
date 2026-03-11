@@ -2,11 +2,11 @@
 Dataset metadata
 """
 import json
-import collections
 import pathlib
-import typing
+from typing import Optional
+import collections
+import dataclasses
 
-import attr
 from clldutils import licenses
 from clldutils.misc import nfilter
 from clldutils.markup import iter_markdown_tables
@@ -342,8 +342,8 @@ LICENSES = {
 }
 
 
-@attr.s
-class Metadata(object):
+@dataclasses.dataclass
+class Metadata:
     """
     Dataset metadata is used as follows:
 
@@ -358,23 +358,23 @@ class Metadata(object):
     - add more `attr.ib` s,
     - register the subclass with the dataset by assigning it to `cldfbench.Dataset.metadata_cls`.
     """
-    id = attr.ib(
+    id: str = dataclasses.field(
         default=None,
-        metadata=dict(elicit=True, required=True))
-    title = attr.ib(
+        metadata=dict(elicit=True, required=True))  # pylint: disable=R1735
+    title: str = dataclasses.field(
         default=None,
-        metadata=dict(elicit=True, required=True))
-    description = attr.ib(
+        metadata=dict(elicit=True, required=True))  # pylint: disable=R1735
+    description: str = dataclasses.field(
         default=None)
-    license = attr.ib(
+    license: str = dataclasses.field(
         default=None,
-        metadata=dict(elicit=True, required=True))
-    url = attr.ib(
+        metadata=dict(elicit=True, required=True))  # pylint: disable=R1735
+    url: str = dataclasses.field(
         default=None,
-        metadata=dict(elicit=True))
-    citation = attr.ib(
+        metadata=dict(elicit=True))  # pylint: disable=R1735
+    citation: str = dataclasses.field(
         default=None,
-        metadata=dict(elicit=True, required=True))
+        metadata=dict(elicit=True, required=True))  # pylint: disable=R1735
 
     @classmethod
     def elicit(cls) -> 'Metadata':
@@ -382,10 +382,10 @@ class Metadata(object):
         Factory method, called when creating a new dataset directory.
         """
         kw = {}
-        for field in attr.fields(cls):
+        for field in dataclasses.fields(cls):
             if field.metadata.get('elicit', False):
-                res = input('{0}: '.format(field.name))
-                if (not res) and field.default is not attr.NOTHING:
+                res = input(f'{field.name}: ')
+                if (not res) and field.default:
                     res = field.default
                 kw[field.name] = res
         return cls(**kw)
@@ -399,23 +399,30 @@ class Metadata(object):
             try:
                 return cls(**json.load(fp))
             except json.decoder.JSONDecodeError as e:  # pragma: no cover
-                raise ValueError('Invalid JSON file: {}\n{}'.format(fname.resolve(), e))
+                raise ValueError(f'Invalid JSON file: {fname.resolve()}\n{e}') from e
 
     def write(self, fname: pathlib.Path):
+        """Dump the metadata as JSON to disk."""
         with fname.open('w', encoding='utf-8') as fp:
-            return json.dump(attr.asdict(self), fp, indent=4)
+            return json.dump(dataclasses.asdict(self), fp, indent=4)
 
     @property
-    def known_license(self) -> typing.Union[None, licenses.License]:
+    def known_license(self) -> Optional[licenses.License]:
+        """
+        A known license - if one can be matched to self.license.
+        """
         if self.license:
             return licenses.find(self.license)
+        return None  # pragma: no cover
 
     @property
-    def zenodo_license(self) -> str:
+    def zenodo_license(self) -> Optional[str]:
+        """A license ID suitable for inclusion in metadata for Zenodo."""
         if self.known_license and self.known_license.id in LICENSES:
             return self.known_license.id
+        return None  # pragma: no cover
 
-    def common_props(self) -> typing.Dict[str, object]:
+    def common_props(self) -> collections.OrderedDict[str, str]:
         """
         The metadata as JSON-LD object suitable for inclusion in CLDF metadata.
         """
@@ -435,13 +442,14 @@ class Metadata(object):
         return res
 
     def markdown(self) -> str:
+        """A human-readable version of the metadata formatted as Markdown."""
         lines = [
-            '# {0}\n'.format(self.title or 'Dataset {0}'.format(self.id)),
+            '# ' + (self.title or f'Dataset {self.id}') + '\n',
             '## How to cite\n\nIf you use these data please cite',
         ]
         if self.citation:
             lines.append('- the original source')
-            lines.extend(["  > {}".format(line) for line in self.citation.split('\n')])
+            lines.extend([f"  > {line}" for line in self.citation.split('\n')])
             lines.extend([
                 "- the derived dataset using the DOI of the "
                 "[particular released version](../../releases/) you were using"
@@ -455,18 +463,25 @@ class Metadata(object):
         lines.append('\n## Description\n\n')
 
         if self.description:
-            lines.append('{0}\n'.format(self.description))
+            lines.append(f'{self.description}\n')
 
         if self.license:
-            lines.append('This dataset is licensed under a %s license\n' % self.license)
+            lines.append(f'This dataset is licensed under a {self.license} license\n')
 
         if self.url:
-            lines.append('Available online at %s\n' % self.url)
+            lines.append(f'Available online at {self.url}\n')
 
         return '\n'.join(lines)
 
 
-def get_creators_and_contributors(text, strict=True) -> typing.Tuple[list, list]:
+TableRowsType = list[dict[str, str]]
+
+
+def get_creators_and_contributors(
+        text: str,
+        strict: bool = True,
+) -> tuple[TableRowsType, TableRowsType]:
+    """Read contributor info from a markdown formatted table."""
     ctypes = {c.lower(): c for c in CONTRIBUTOR_TYPES}
     creators, contributors = [], []
     # Read first table in CONTRIBUTORS.md

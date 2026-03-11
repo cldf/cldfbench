@@ -3,6 +3,14 @@
 ## unreleased
 
 - Fixed issue where `makecldf` could not be run on a dataset in a git repos with no commits.
+- Drop py3.8 compat.
+- Removed dependency on requests and attrs.
+
+### Backwards incompatible changes
+
+- removed `utils.get_url` function.
+- `metadata.Metadata` is no longer an `attrs`-decorated class, so inheriting classes (to implement
+  custom scaffold metadata) must be changed to `dataclasses`.
 
 
 ## [1.14.2] - 2025-08-07

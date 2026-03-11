@@ -46,8 +46,10 @@ from clldutils.misc import format_size, nfilter
 from clldutils.path import md5, git_describe
 from csvw.dsv import UnicodeWriter
 from csvw.datatypes import anyURI
+
 from zenodoclient.api import Zenodo, API_URL, API_URL_SANDBOX, ACCESS_TOKEN
 from zenodoclient.models import PUBLISHED
+
 import tqdm
 
 
@@ -73,7 +75,7 @@ in the *{media}.zip* file containing the additional column *local_path*.
 DESCRIPTION = "{title}{formats}{supplement_to} {descr} {online}"
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser, multiple=True)
     parser.add_argument(
         '-m', '--mimetype',
@@ -143,7 +145,7 @@ def _create_download_thread(url, target):
     download_threads.append(download_thread)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     ds = get_dataset(args)
     ds_cldf = ds.cldf_reader()
     release_dir = args.out / '{0}_{1}'.format(ds.id, MEDIA)

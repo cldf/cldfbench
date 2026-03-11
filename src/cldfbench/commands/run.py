@@ -6,11 +6,11 @@ import argparse
 from cldfbench.cli_util import with_dataset, add_dataset_spec
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser)
     parser.add_argument('cmd', help='command to run on the dataset')
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     with_dataset(args, args.cmd)
