@@ -17,6 +17,7 @@ from cldfbench import ENTRY_POINT
 from cldfbench import get_dataset as _get
 from cldfbench import get_datasets as _gets
 from cldfbench.catalogs import Catalog
+from cldfbench.metadata import get_creators_and_contributors
 from .util import colored
 
 __all__ = ['DatasetNotFoundException',
@@ -192,3 +193,20 @@ def instantiate_catalog(
     except ValueError as e:  # pragma: no cover
         log.warning(str(e))
         return None
+
+
+def set_creators_and_contributors(ds, md: dict[str, Any]):
+    """Sets the creators and contributors keys in Zenodo metadata."""
+    contribs = ds.dir / 'CONTRIBUTORS.md'
+    if contribs.exists():
+        creators, contributors = get_creators_and_contributors(
+            contribs.read_text(encoding='utf8'), strict=False)
+        for key, items in [('creators', creators), ('contributors', contributors)]:
+            if items:
+                md[key] = [_contrib(p) for p in items]
+
+
+def _contrib(d):
+    return {
+        k: v for k, v in d.items()
+        if k in {'name', 'affiliation', 'orcid', 'type'} and (v or k != 'orcid')}

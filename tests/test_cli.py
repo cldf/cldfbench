@@ -29,7 +29,16 @@ def tmpds_media(fixtures_dir, tmp_path):
     return tmp_path / 'module_media.py'
 
 
+@pytest.fixture
+def tmpds_media2(fixtures_dir, tmp_path):
+    for p in fixtures_dir.iterdir():
+        if p.is_file():
+            shutil.copy(p, tmp_path / p.name)
+    return tmp_path / 'module_media_local.py'
+
+
 def _main(cmd, **kw):
+    kw.setdefault('log', logging.getLogger(__name__))
     return cli.main(shlex.split('--no-config ' + cmd), **kw)
 
 
@@ -248,15 +257,26 @@ def test_media(tmpds_media, tmp_path, glottolog_dir, capsys, mocker):
     assert 'application/pdf' not in capturedout
 
     with pytest.raises(SystemExit):
-        _main('media -m wav --create-release -p 10.5072/zenodo.710757 ' + str(tmpds_media))
+        _main('media -m wav -p 10.5072/zenodo.710757 ' + str(tmpds_media))
     with pytest.raises(SystemExit):
-        _main('media --create-release --update-zendo ' + str(tmpds_media))
-    with pytest.raises(SystemExit):
-        _main('media --create-release ' + str(tmpds_media))
+        _main('media ' + str(tmpds_media))
 
-    _main('media -o ' + str(tmp_path) + ' -m wav --create-release -p 10.5281/zenodo.4350882 ' + str(tmpds_media))
+    _main('media -o ' + str(tmp_path) + ' -m wav -p 10.5281/zenodo.4350882 ' + str(tmpds_media))
     assert (tmp_path / MEDIA / INDEX_CSV).exists()
     assert (tmp_path / MEDIA / wav_name[:2] / wav_name).exists()
     assert (tmp_path / releasedir / zipfile_name).exists()
     assert (tmp_path / releasedir / 'README.md').exists()
     assert (tmp_path / releasedir / ZENODO_FILE_NAME).exists()
+
+
+def test_media2(tmpds_media2, tmp_path, glottolog_dir, capsys):
+    _main('makecldf ' + str(tmpds_media2) + ' --glottolog ' + str(glottolog_dir))
+
+    _main('media -l ' + str(tmpds_media2))
+    capturedout = capsys.readouterr().out
+    assert 'application/json' in capturedout
+
+    _main('media -o ' + str(tmp_path) + ' -p 10.5281/zenodo.4350882 ' + str(tmpds_media2))
+    assert (tmp_path / MEDIA / INDEX_CSV).exists()
+    assert 'local_path' in (tmp_path / MEDIA / INDEX_CSV).read_text(encoding='utf8')
+    assert (tmp_path / MEDIA / '12' / '12345.json').exists()

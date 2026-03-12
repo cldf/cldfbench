@@ -24,30 +24,36 @@ General workflow:
        - it is necessary to log in via correct zenodo user and to have the corresponding access
          token in your environment
 """
-import dataclasses
+import functools
 import os
 import re
 import html
+import shutil
 import time
 import pathlib
 import zipfile
 import itertools
 import threading
 import collections
+from collections.abc import Generator
+import dataclasses
+from typing import Optional, Any
 from datetime import datetime
 from urllib.request import urlretrieve
+from urllib.parse import urlparse
 
+import csvw
+from csvw.datatypes import anyURI
+from csvw.dsv import UnicodeWriter
 from clldutils import jsonlib
 from clldutils.clilib import PathType, ParserError
 from clldutils.misc import format_size, nfilter
 from clldutils.path import md5, git_describe
-from csvw.dsv import UnicodeWriter
-from csvw.datatypes import anyURI
+from pycldf import Dataset as CLDFDataset
 import tqdm
 
-from cldfbench.cli_util import add_dataset_spec, get_dataset
+from cldfbench.cli_util import add_dataset_spec, get_dataset, set_creators_and_contributors
 from cldfbench.datadir import DataDir
-from cldfbench.metadata import get_creators_and_contributors
 
 ZENODO_DOI_PATTERN = re.compile(r'10\.5281/zenodo\.(?P<id>[0-9]+)$')
 MEDIA = 'media'
@@ -104,14 +110,6 @@ def register(parser):  # pylint: disable=C0116
              'for --create-release.',
     )
     parser.add_argument(
-        '--create-release',
-        help='Switch to create ID_{0} directory containing {0}.zip, README.md and {1} for '
-             'releasing on zenodo. Cannot be used with --update-zenodo.'.format(
-            MEDIA, ZENODO_FILE_NAME),  # noqa: E122
-        action='store_true',
-        default=False,
-    )
-    parser.add_argument(
         '--debug',
         help='Switch to work with max. 500 media files and with sandbox.zenodo for testing ONLY',
         action='store_true',
@@ -119,10 +117,7 @@ def register(parser):  # pylint: disable=C0116
     )
 
 
-def _create_download_thread(url, target):
-    global download_threads
-    download_threads = []
-
+def _create_download_thread(url, target, download_threads):
     def _download(url, target):
         assert not target.exists()
         urlretrieve(url, str(target))
@@ -135,93 +130,187 @@ def _create_download_thread(url, target):
     download_threads.append(download_thread)
 
 
-def _valid_input(media_table, args) -> bool:
-    if media_table is None:  # pragma: no cover
-        args.log.error('Dataset has no MediaTable or media.csv')
-        return False
+@dataclasses.dataclass(frozen=True)
+class Row:
+    """A row in a media table with info about the location of the associated file."""
+    id: str
+    mimetype: str
+    data: dict[str, Any]
+    url: Optional[str] = None
+    local_path: Optional[pathlib.Path] = None
+
+    @property
+    def ext(self) -> str:
+        """Filename extension gleaned from the URL"""
+        return urlparse(self.data['URL']).path.split('.')[-1].lower()
+
+    def download(self, target: pathlib.Path, download_threads: list):
+        """Retrieve the associated media file either by copy or by doanload."""
+        if self.local_path:
+            shutil.copy(self.local_path, target)
+        else:
+            _create_download_thread(self.url, target, download_threads)
+
+
+@dataclasses.dataclass
+class MediaTableSpec:
+    """A table together with column access info."""
+    table: csvw.Table
+    id_col: str
+    media_type_col: str
+    _ds: CLDFDataset
+
+    @classmethod
+    def from_dataset(cls, ds_cldf) -> 'MediaTableSpec':
+        """
+        A dataset may contain a regular MediaTable component, or just a table with url media.csv.
+        """
+        media_table = ds_cldf.get('MediaTable', ds_cldf.get('media.csv', None))
+        if media_table is None:
+            raise ValueError()  # pragma: no cover
+
+        col_names = {'Media_Type': 'mimetype', 'id': 'ID'}
+        for prop in col_names:
+            col = ds_cldf.get(('MediaTable', prop))
+            if col:
+                col_names[prop] = col.name
+        return cls(media_table, col_names['id'], col_names['Media_Type'], _ds=ds_cldf)
+
+    def __iter__(self) -> Generator[Row, None, None]:
+        for row in self.table:
+            row['URL'] = anyURI.to_string(self._ds.get_row_url(self.table, row))
+            url, local_src = row['URL'], None
+            if not row['URL'].startswith('http'):
+                url = None
+                local_src = self._ds.directory / row['URL']
+                if not local_src.exists():
+                    continue
+            yield Row(row[self.id_col], row[self.media_type_col], row, url, local_src)
+
+
+def _valid_input(args) -> bool:
     if args.parent_doi and not ZENODO_DOI_PATTERN.match(args.parent_doi):
         args.log.error('Invalid passed DOI')
         return False
-    if args.create_release:
+    if not args.list:
         if not args.parent_doi:
             args.log.error('The corresponding DOI is required (via --parent-doi).')
             return False
     return True
 
 
+@dataclasses.dataclass(frozen=True)
+class File:
+    """Metadata about a media file."""
+    path: pathlib.Path
+    mimetype: Optional[str] = None
+    size: Optional[int] = None
+
+    @functools.cached_property
+    def ext(self) -> str:
+        """Filename extension, aka suffix without the dot."""
+        return self.path.suffix.replace('.', '')
+
+    @property
+    def key(self) -> str:
+        """Filetype formatted as human-readable string."""
+        return f"{self.mimetype} ({self.ext})" if self.mimetype else None
+
+
 @dataclasses.dataclass
-class FileStats:
-    size: dict[str, int] = dataclasses.field(default_factory=collections.Counter)
-    number: dict[str, int] = dataclasses.field(default_factory=collections.Counter)
-    extensions: set = dataclasses.field(default_factory=set)
-    paths: list[pathlib.Path] = dataclasses.field(default_factory=list)
+class MediaDir:
+    """A container for media file metadata."""
+    path: pathlib.Path
+    files: list[File] = dataclasses.field(default_factory=list)
+    rows: list[dict[str, Any]] = dataclasses.field(default_factory=list)
 
-    def update(self, row, f_ext):
-        m = f"{row['mimetype']} ({f_ext})"
-        self.size[m] += int(row['size'])
-        self.number.update([m])
-        self.extensions.add(f_ext.lower())
+    def __post_init__(self):
+        self.path.mkdir(exist_ok=True)
 
-    def print(self):
-        for k, v in self.size.most_common():
-            print('\t'.join([k.ljust(20), str(self.number[k]), format_size(v)]))
+    @property
+    def index(self) -> pathlib.Path:
+        """The location of the file index."""
+        return self.path / INDEX_CSV
+
+    def write_index(self):
+        """Write the file metadata to a csv file."""
+        with UnicodeWriter(self.index) as w:
+            for i, row in enumerate(self.rows):
+                if i == 0:
+                    w.writerow(row.keys())
+                w.writerow(row.values())
+
+    def add(self, row) -> pathlib.Path:
+        """Add a file and return its target path in media_dir."""
+        size = row.data.get('size')
+        d = self.path / row.id[:2]
+        f = File(d / '.'.join([row.id, row.ext]), row.mimetype, int(size) if size else None)
+        row.data['local_path'] = pathlib.Path(d.name) / f.path.name
+        self.rows.append(row.data)
+        self.files.append(f)
+        return f.path
+
+    @functools.cached_property
+    def extensions(self) -> set[str]:
+        """The set of filename extensions used for the media files in the dataset."""
+        return {f.ext for f in self.files}
+
+    def print_stats(self):
+        """Print summary stats about the media files in the dataset."""
+        size_by_mimetype = collections.Counter()
+        count_by_mimetype = collections.Counter()
+        for f in self.files:
+            size_by_mimetype[f.key] += f.size or 0
+            count_by_mimetype.update([f.key])
+
+        for k, v in size_by_mimetype.most_common():
+            print('\t'.join([k.ljust(20), str(count_by_mimetype[k]), format_size(v)]))
 
 
 def run(args):  # pylint: disable=C0116
     ds = get_dataset(args)
     ds_cldf = ds.cldf_reader()
+    download_threads = []
 
-    media_table = ds_cldf.get('MediaTable', ds_cldf.get('media.csv', None))
-    if not _valid_input(media_table, args):
+    if not _valid_input(args):
         raise ParserError
 
+    try:
+        media_table = MediaTableSpec.from_dataset(ds_cldf)
+    except ValueError as e:  # pragma: no cover
+        args.log.error('Dataset has no MediaTable or media.csv')
+        raise ParserError from e
+
     mime_types = [m.strip() for m in nfilter(args.mimetype.split(','))] if args.mimetype else []
+    media_dir = MediaDir(args.out / MEDIA)
 
-    media_dir = args.out / MEDIA
-    media_dir.mkdir(exist_ok=True)
-    stats = FileStats()
+    for i, row in enumerate(tqdm.tqdm(media_table, desc='Getting media items')):
+        if args.debug and i > 500:
+            break  # pragma: no cover
 
-    with UnicodeWriter(media_dir / INDEX_CSV if not args.list else None) as w:
-        for i, row in enumerate(tqdm.tqdm(media_table, desc='Getting media items')):
-            if args.debug and i > 500:
-                break  # pragma: no cover
-            row['URL'] = anyURI.to_string(ds_cldf.get_row_url(media_table, row))
-            #
-            # FIXME: Don't assume URLs without query!
-            #
-            f_ext = row['URL'].split('.')[-1].lower()
-            if any((not mime_types,
-                    f_ext in mime_types,
-                    any(row['mimetype'].startswith(x) for x in mime_types))):
-                stats.update(row, f_ext)
-                if not args.list:
-                    d = media_dir / row['ID'][:2]
-                    d.mkdir(exist_ok=True)
-                    target = d / '.'.join([row['ID'], f_ext])
-                    row['local_path'] = pathlib.Path(row['ID'][:2]) / target.name
-                    if i == 0:
-                        w.writerow(row)
-                    w.writerow(row.values())
-                    stats.paths.append(target)
-                    if (not target.exists()) or md5(target) != row['ID']:
-                        _create_download_thread(row['URL'], target)
-
-    stats.paths.append(media_dir / INDEX_CSV)
+        if any((not mime_types,
+                row.ext in mime_types,
+                any(row.mimetype.startswith(x) for x in mime_types))):
+            target = media_dir.add(row)
+            if not args.list:
+                # We do not only list stats about the media files, but retrieve them.
+                target.parent.mkdir(exist_ok=True)
+                if (not target.exists()) or md5(target) != row.id:
+                    row.download(target, download_threads)
 
     if args.list:
-        stats.print()
+        media_dir.print_stats()
         return
 
     # Waiting for the download threads to finish
-    if 'download_threads' in globals():
-        for t in download_threads:
-            t.join()
+    for t in download_threads:
+        t.join()
 
-    if args.create_release:
-        release_dir = args.out / f'{ds.id}_{MEDIA}'
-        release_dir.mkdir(exist_ok=True)
-        _zip_media(release_dir, stats.paths, args)
-        _release_metadata(release_dir, ds, args, stats.extensions)
+    media_dir.write_index()
+    release_dir = args.out / f'{ds.id}_{MEDIA}'
+    release_dir.mkdir(exist_ok=True)
+    _zip_media(release_dir, [media_dir.index] + [f.path for f in media_dir.files], args)
+    _release_metadata(release_dir, ds, args, media_dir.extensions)
 
 
 def _zip_media(release_dir, media, args):
@@ -239,13 +328,7 @@ def _release_metadata(release_dir, ds, args, used_file_extensions):
     git_url = [r for r in ds.repo.repo.remotes if r.name == 'origin'][0].url.replace('.git', '')
     with (jsonlib.update(
             release_dir / ZENODO_FILE_NAME, indent=4, default=collections.OrderedDict()) as md):
-        contribs = ds.dir / 'CONTRIBUTORS.md'
-        creators, contributors = get_creators_and_contributors(
-            contribs.read_text(encoding='utf8') if contribs.exists() else '', strict=False)
-        if creators:
-            md['creators'] = [_contrib(p) for p in creators]
-        if contributors:
-            md['contributors'] = [_contrib(p) for p in contributors]
+        set_creators_and_contributors(ds, md)
         communities = list(itertools.chain(
             [r["identifier"] for r in md.get("communities", [])],
             [c.strip() for c in nfilter(args.communities.split(','))],
@@ -296,10 +379,6 @@ def _release_metadata(release_dir, ds, args, used_file_extensions):
             formats=f' ({formats})' if formats else '',
             media=MEDIA,
             index=INDEX_CSV))
-
-
-def _contrib(d):
-    return {k: v for k, v in d.items() if k in {'name', 'affiliation', 'orcid', 'type'}}
 
 
 def _add_rel_id(md, scheme, identifier, relation):
