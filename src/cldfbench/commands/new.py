@@ -4,7 +4,7 @@ Create a skeleton for a new dataset
 import pathlib
 import collections
 
-from cldfbench import scaffold
+from cldfbench.scaffold import iter_scaffolds
 
 _templates = None  # pylint: disable=invalid-name
 
@@ -13,7 +13,7 @@ def get_template_dict():
     """Read available dataset templates."""
     global _templates  # pylint: disable=W0603
     if _templates is None:
-        _templates = collections.OrderedDict(scaffold.iter_scaffolds())
+        _templates = collections.OrderedDict(iter_scaffolds())
     return _templates
 
 

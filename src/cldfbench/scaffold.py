@@ -16,7 +16,6 @@ import warnings
 import dataclasses
 from collections.abc import Generator
 
-import cldfbench
 from cldfbench.metadata import Metadata
 from cldfbench.util import get_entrypoints
 
@@ -35,12 +34,12 @@ def iter_scaffolds() -> Generator[tuple[str, type], None, None]:
 
 class Template:  # pylint: disable=R0903
     """A CLDF dataset suitable for curation in a GitHub repository"""
-    prefix = cldfbench.__name__
-    package = cldfbench.__name__
+    prefix = 'cldfbench'
+    package = 'cldfbench'
 
     # To overwite individual template files, provide a secondary template directory which
     # contains only the specialized template files.
-    dirs = [pathlib.Path(cldfbench.__file__).parent / 'dataset_template']
+    dirs = [pathlib.Path(__file__).parent / 'dataset_template']
 
     id_pattern = re.compile('[a-z_0-9]+$')
     """
