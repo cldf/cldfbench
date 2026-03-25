@@ -1,8 +1,10 @@
 # Changes
 
-## unreleased
+## [1.14.3]
 
 - Fixed issue where `makecldf` could not be run on a dataset in a git repos with no commits.
+- Pin dependencies for packages which are about to get incompatible new major versions.
+- Last version of the 1.x series.
 
 
 ## [1.14.2] - 2025-08-07
