@@ -7,13 +7,14 @@ import inspect
 import pathlib
 import logging
 import argparse
+import functools
 import importlib
 import subprocess
 from collections.abc import Generator
 
 import pycldf
 from clldutils.path import sys_path
-from clldutils.misc import lazyproperty, nfilter
+from clldutils.misc import nfilter
 from cldfcatalog import Repository
 
 from cldfbench.cldf import CLDFSpec, CLDFWriter
@@ -68,7 +69,7 @@ class Dataset:
     def __str__(self):
         return f'{self.__class__.__name__} "{self.id}" at {self.dir.resolve()}'
 
-    @lazyproperty
+    @functools.cached_property
     def cldf_dir(self) -> DataDir:
         """
         Directory where CLDF data generated from the Dataset will be stored (unless specified
@@ -76,14 +77,14 @@ class Dataset:
         """
         return self.dir / 'cldf'
 
-    @lazyproperty
+    @functools.cached_property
     def raw_dir(self) -> DataDir:
         """
         Directory where cldfbench expects the raw or source data.
         """
         return self.dir / 'raw'
 
-    @lazyproperty
+    @functools.cached_property
     def etc_dir(self) -> DataDir:
         """
         Directory where cldfbench expects additional configuration or metadata.
@@ -152,7 +153,7 @@ class Dataset:
             cldf_spec = self.cldf_specs_dict[cldf_spec]
         return cldf_spec.get_dataset()
 
-    @lazyproperty
+    @functools.cached_property
     def repo(self) -> Optional[Repository]:
         """
         The git repository cloned to the dataset's directory (or `None`).
