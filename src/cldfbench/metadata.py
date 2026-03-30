@@ -397,7 +397,8 @@ class Metadata:
         """
         with fname.open('r', encoding='utf-8') as fp:
             try:
-                return cls(**json.load(fp))
+                fields = {f.name for f in dataclasses.fields(cls)}
+                return cls(**{k: v for k, v in json.load(fp).items() if k in fields})
             except json.decoder.JSONDecodeError as e:  # pragma: no cover
                 raise ValueError(f'Invalid JSON file: {fname.resolve()}\n{e}') from e
 

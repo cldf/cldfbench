@@ -1,3 +1,5 @@
+from clldutils.jsonlib import update
+
 from cldfbench.metadata import *
 
 
@@ -5,6 +7,8 @@ def test_Metadata_read_write(tmp_path):
     fname = tmp_path / 'md.json'
     md = Metadata()
     md.write(fname)
+    with update(fname) as d:
+        d['key'] = 'value'
     assert Metadata.from_file(fname) == md
 
 
