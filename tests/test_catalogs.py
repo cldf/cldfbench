@@ -1,6 +1,9 @@
+import pytest
+
 from cldfbench.catalogs import *
 
 
+@pytest.mark.with_catalog
 def test_Glottolog(glottolog_dir):
     cat = Glottolog(glottolog_dir)
     assert cat.api.languoids(ids=['abcd1234'])
@@ -13,6 +16,7 @@ def test_Glottolog(glottolog_dir):
     assert 'abcd1234' in cat.api.macroareas_by_glottocode
 
 
-def testConcepticon(concepticon_dir):
+@pytest.mark.with_catalog
+def test_Concepticon(concepticon_dir):
     cat = Concepticon(concepticon_dir)
     _ = cat.api.cached_glosses

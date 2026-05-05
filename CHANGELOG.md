@@ -1,8 +1,19 @@
 # Changes
 
-## [1.14.3]
+## unreleased
 
 - Fixed issue where `makecldf` could not be run on a dataset in a git repos with no commits.
+- Drop py3.8 compat.
+- Removed dependency on requests and attrs.
+
+Note: Functionality requiring `pyglottolog` or `pyconcepticon` will only work once versions of
+these packages are released which are compatible with `clldutils` 4.x.
+
+### Backwards incompatible changes
+
+- removed `utils.get_url` function.
+- `metadata.Metadata` is no longer an `attrs`-decorated class, so inheriting classes (to implement
+  custom scaffold metadata) must be changed to `dataclasses`.
 - Pin dependencies for packages which are about to get incompatible new major versions.
 - Last version of the 1.x series.
 

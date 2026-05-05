@@ -1,16 +1,20 @@
+"""
+Functionality to access structured data in the file system.
+"""
 import gzip
 import shutil
-import typing
+import logging
+from typing import Optional, Union, Literal
 import pathlib
 import zipfile
+import functools
 import itertools
 import contextlib
 from xml.etree import ElementTree as et
 import collections
+from collections.abc import Iterable
 import unicodedata
-
-import requests
-import termcolor
+import urllib.request
 
 try:
     from odf.opendocument import load as load_odf
@@ -33,20 +37,24 @@ from clldutils.path import TemporaryDirectory
 from clldutils import jsonlib
 from pycldf.sources import Source
 
+from .util import colored
 
-__all__ = ['get_url', 'DataDir']
 
+__all__ = ['DataDir', 'urlopen']
 
+HTTP_REQUEST_TIMEOUT = 10
 ODF_NS_TABLE = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
 ODF_NS_TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
+PathType = Union[str, pathlib.Path]
+PathDictType = dict[str, pathlib.Path]
+LogType = Optional[logging.Logger]
 
 
 def _real_len(seq, pred=bool):
     for index in range(len(seq) - 1, -1, -1):
         if pred(seq[index]):
             return index + 1
-    else:
-        return 0
+    return 0
 
 
 def _ods_value(cell):
@@ -77,8 +85,7 @@ def _ods_cells(row):
 def _pad_list(li, length):
     if len(li) >= length:
         return li
-    else:
-        return [e for e in itertools.chain(li, itertools.repeat('', length - len(li)))]
+    return list(itertools.chain(li, itertools.repeat('', length - len(li))))
 
 
 def _ods_to_list(table):
@@ -102,20 +109,28 @@ def _ods_to_list(table):
         for cloned_row in itertools.repeat(row, number)]
 
 
-def get_url(url: str, log=None, **kw) -> requests.Response:
-    res = requests.get(url, **kw)
-    if log:
-        level = log.info if res.status_code == 200 else log.warning
-        level('HTTP {0} for {1}'.format(
-            termcolor.colored(res.status_code, 'blue'), termcolor.colored(url, 'blue')))
-    return res
+@contextlib.contextmanager
+def urlopen(url, timeout=HTTP_REQUEST_TIMEOUT):
+    """
+    Open URLs
+    - without raising an exception on HTTP errors,
+    - passing a specific User-Agent header,
+    - specifying a timeout.
+    """
+    class NonRaisingHTTPErrorProcessor(urllib.request.HTTPErrorProcessor):
+        """Don't raise exceptions on HTTP errors."""
+        http_response = https_response = lambda self, req, res: res  # pylint: disable=C3001
+
+    opener = urllib.request.build_opener(NonRaisingHTTPErrorProcessor)
+    opener.addheaders = [('User-agent', 'cldfbench/2.0.0')]
+    yield opener.open(urllib.request.Request(url), timeout=timeout)
 
 
 class DataDir(type(pathlib.Path())):
     """
     A `pathlib.Path` augmented with functionality to read common data formats.
     """
-    def _path(self, fname: typing.Union[str, pathlib.Path]) -> pathlib.Path:
+    def _path(self, fname: PathType) -> pathlib.Path:
         """
         Interpret strings without "/" as names of files in `self`.
 
@@ -126,12 +141,14 @@ class DataDir(type(pathlib.Path())):
             return self / fname
         return pathlib.Path(fname)
 
-    def read(self,
-             fname: typing.Union[str, pathlib.Path],
-             aname: str = None,
-             normalize: str = None,
-             suffix: str = None,
-             encoding: str = 'utf8') -> str:
+    def read(  # pylint: disable=R0913,R0917
+            self,
+            fname: PathType,
+            aname: str = None,
+            normalize: Optional[Literal['NFC', 'NFKC', 'NFD', 'NFKD']] = None,
+            suffix: str = None,
+            encoding: str = 'utf8',
+    ) -> str:
         """
         Read text data from a file.
 
@@ -144,8 +161,8 @@ class DataDir(type(pathlib.Path())):
         p = self._path(fname)
         suffix = suffix or p.suffix
         if suffix == '.zip':
-            zip = zipfile.ZipFile(str(p))
-            text = zip.read(aname or zip.namelist()[0]).decode(encoding)
+            with zipfile.ZipFile(str(p)) as zipf:
+                text = zipf.read(aname or zipf.namelist()[0]).decode(encoding)
         elif suffix == '.gz':
             with gzip.open(p) as fp:
                 text = fp.read().decode(encoding)
@@ -156,7 +173,7 @@ class DataDir(type(pathlib.Path())):
             text = unicodedata.normalize(normalize, text)
         return text
 
-    def write(self, fname: typing.Union[str, pathlib.Path], text: str, encoding='utf8'):
+    def write(self, fname: PathType, text: str, encoding='utf8'):
         """
         Write text data to a file.
 
@@ -165,53 +182,53 @@ class DataDir(type(pathlib.Path())):
         self._path(fname).write_text(text, encoding=encoding)
         return fname
 
-    def read_csv(self,
-                 fname: typing.Union[str, pathlib.Path],
-                 normalize=None, **kw) -> typing.List[typing.Union[dict, list]]:
+    def read_csv(
+            self,
+            fname: PathType,
+            normalize: Optional[Literal['NFC', 'NFKC', 'NFD', 'NFKD']] = None,
+            **kw,
+    ) -> list[Union[dict[str, str], list[str]]]:
         """
         Read CSV data from a file.
         """
-        if not normalize:
-            return list(dsv.reader(self._path(fname), **kw))
-        if kw.get('dicts'):
-            return [collections.OrderedDict(
-                [(k, unicodedata.normalize(normalize, v)) for k, v in row.items()]
-            ) for row in dsv.reader(self._path(fname), **kw)]
-        else:
-            return [[unicodedata.normalize(normalize, k) for k in row]
-                    for row in dsv.reader(self._path(fname), **kw)]
+        reader = dsv.reader(self._path(fname), **kw)
 
-    def write_csv(self,
-                  fname: typing.Union[str, pathlib.Path],
-                  rows: typing.Iterable[typing.List[str]], **kw):
+        if not normalize:
+            return list(reader)
+
+        norm = functools.partial(unicodedata.normalize, normalize)
+
+        if not kw.get('dicts'):
+            return [[norm(k) for k in row] for row in reader]
+
+        return [collections.OrderedDict([(k, norm(v)) for k, v in row.items()]) for row in reader]
+
+    def write_csv(self, fname: PathType, rows: Iterable[list[str]], **kw):
         """
         Write CSV data to a file.
         """
         with dsv.UnicodeWriter(self._path(fname), **kw) as writer:
             writer.writerows(rows)
 
-    def read_xml(self, fname: typing.Union[str, pathlib.Path], wrap=True) -> et.Element:
+    def read_xml(self, fname: PathType, wrap=True) -> et.Element:
         """
         Reads and parses XML from a file.
         """
         xml = xmlchars(self.read(fname))
         if wrap:
-            xml = '<r>{0}</r>'.format(xml)
+            xml = f'<r>{xml}</r>'
         return et.fromstring(xml.encode('utf8'))
 
-    def read_json(self,
-                  fname: typing.Union[str, pathlib.Path],
-                  **kw) -> typing.Union[str, list, dict]:
+    def read_json(self, fname: PathType, **_) -> Union[str, list, dict]:
+        """Read a JSON file."""
         return jsonlib.load(self._path(fname))
 
-    def read_bib(self,
-                 fname: typing.Union[str, pathlib.Path] = 'sources.bib') -> typing.List[Source]:
+    def read_bib(self, fname: PathType = 'sources.bib') -> list[Source]:
+        """Read a BibTeX file."""
         bib = simplepybtex.database.parse_string(self.read(fname), bib_format='bibtex')
         return [Source.from_entry(k, e) for k, e in bib.entries.items()]
 
-    def ods2csv(self,
-                fname: typing.Union[str, pathlib.Path],
-                outdir: typing.Optional[pathlib.Path] = None) -> typing.Dict[str, pathlib.Path]:
+    def ods2csv(self, fname: PathType, outdir: Optional[pathlib.Path] = None) -> PathDictType:
         """
         Dump the data from an OpenDocument Spreadsheet (suffix .ODS) file to CSV.
 
@@ -234,17 +251,13 @@ class DataDir(type(pathlib.Path())):
         res = {}
         for table in tables:
             table_name = table.attributes[ODF_NS_TABLE, 'name']
-            csv_path = outdir / '{}.{}.csv'.format(
-                fname.stem,
-                slug(table_name, lowercase=False))
+            csv_path = outdir / f'{fname.stem}.{slug(table_name, lowercase=False)}.csv'
             with dsv.UnicodeWriter(csv_path) as writer:
                 writer.writerows(_ods_to_list(table))
             res[table_name] = csv_path
         return res
 
-    def xls2csv(self,
-                fname: typing.Union[str, pathlib.Path],
-                outdir: typing.Optional[pathlib.Path] = None) -> typing.Dict[str, pathlib.Path]:
+    def xls2csv(self, fname: PathType, outdir: Optional[pathlib.Path] = None) -> PathDictType:
         """
         Dump the data from an Excel XLS file to CSV.
 
@@ -263,7 +276,7 @@ class DataDir(type(pathlib.Path())):
             wb = xlrd.open_workbook(str(fname))
         except xlrd.biffh.XLRDError as e:
             if 'xlsx' in str(e):
-                raise ValueError('To read xlsx files, call xlsx2csv!')
+                raise ValueError('To read xlsx files, call xlsx2csv!') from e
             raise  # pragma: no cover
         for sname in wb.sheet_names():
             sheet = wb.sheet_by_name(sname)
@@ -275,9 +288,7 @@ class DataDir(type(pathlib.Path())):
                 res[sname] = path
         return res
 
-    def xlsx2csv(self,
-                 fname: typing.Union[str, pathlib.Path],
-                 outdir: typing.Optional[pathlib.Path] = None) -> typing.Dict[str, pathlib.Path]:
+    def xlsx2csv(self, fname: PathType, outdir: Optional[pathlib.Path] = None) -> PathDictType:
         """
         Dump the data from an Excel XLSX file to CSV.
 
@@ -297,8 +308,8 @@ class DataDir(type(pathlib.Path())):
                 # Since Excel does not have an integer type, integers are rendered as "n.0",
                 # which in turn confuses type detection of tools like csvkit. Thus, we normalize
                 # numbers of the form "n.0" to "n".
-                return '{0}'.format(int(x))  # pragma: no cover
-            return '{0}'.format(x).strip()
+                return f'{int(x)}'  # pragma: no cover
+            return f'{x}'.strip()
 
         fname = self._path(fname)
         res = {}
@@ -314,10 +325,7 @@ class DataDir(type(pathlib.Path())):
         return res
 
     @contextlib.contextmanager
-    def temp_download(self,
-                      url: str,
-                      fname: typing.Union[str, pathlib.Path],
-                      log=None) -> pathlib.Path:
+    def temp_download(self, url: str, fname: PathType, log: LogType = None) -> pathlib.Path:
         """
         Context manager to use when downloaded data needs to be manipulated before storage \
         (e.g. to anonymize it).
@@ -337,22 +345,27 @@ class DataDir(type(pathlib.Path())):
             if p and p.exists():
                 p.unlink()
 
-    def download(self,
-                 url: str,
-                 fname: typing.Union[str, pathlib.Path],
-                 log=None,
-                 skip_if_exists=False):
+    def download(
+            self,
+            url: str,
+            fname: PathType,
+            log: LogType = None,
+            skip_if_exists: bool = False,
+    ) -> pathlib.Path:
         """
         Download data from a URL to the directory.
         """
         p = self._path(fname)
         if p.exists() and skip_if_exists:
             return p
-        res = get_url(url, log=log, stream=True)
-        with p.open('wb') as fp:
-            for chunk in res.iter_content(chunk_size=1024):
-                if chunk:  # filter out keep-alive new chunks
-                    fp.write(chunk)
+
+        with urlopen(url) as fp:
+            if log:
+                blue = functools.partial(colored, 'blue')
+                level = log.info if fp.status == 200 else log.warning
+                level(f'HTTP {blue(fp.status)} for {blue(url)}')
+            p.write_bytes(fp.read())
+
         return p
 
     def download_and_unpack(self, url: str, *paths: str, **kw):

@@ -16,12 +16,12 @@ from clldutils import jsonlib
 from cldfbench.cli_util import with_dataset, add_dataset_spec
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser)
     parser.add_argument('--verbose', action='store_true', default=False)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     res = with_dataset(args, diff)
     if res == 2:
         args.log.info('----------------------------------------------------------------------')
@@ -30,48 +30,50 @@ def run(args):
     return res
 
 
-def print_diff(diff, d):  # pragma: no cover
-    a = diff.a_blob.data_stream.read().decode('utf-8').splitlines()
-    b = d.joinpath(diff.a_path).read_text(encoding='utf8').splitlines()
-    print('\n'.join(difflib.unified_diff(a, b, fromfile=diff.a_path, lineterm='', n=1)))
+def print_diff(diff_, d):  # pragma: no cover
+    """Print file diff."""
+    a = diff_.a_blob.data_stream.read().decode('utf-8').splitlines()
+    b = d.joinpath(diff_.a_path).read_text(encoding='utf8').splitlines()
+    print('\n'.join(difflib.unified_diff(a, b, fromfile=diff_.a_path, lineterm='', n=1)))
 
 
-def diff(ds, args):
+def diff(ds, args) -> int:
+    """Inspect repository differences."""
     try:
         repo = git.Repo(str(ds.dir))
     except git.InvalidGitRepositoryError:  # pragma: no cover
-        args.log.warning('{} is not a git repository. Cannot diff'.format(ds.dir))
-        return
+        args.log.warning('%s is not a git repository. Cannot diff', ds.dir)
+        return 0
 
     md_changed = None
     print(repo.git.status('cldf'))
 
-    diff = repo.index.diff(None)
+    diff_ = repo.index.diff(None)
 
     if args.verbose:  # pragma: no cover
-        for diff_item in diff.iter_change_type('M'):
+        for diff_item in diff_.iter_change_type('M'):
             print_diff(diff_item, ds.dir)
 
-    for item in diff:
+    for item in diff_:
         if item.a_path.startswith('cldf/'):
             p = pathlib.Path(item.a_path)
             if (not p.name.startswith('.')) and p.name != 'requirements.txt':
                 if p.name.endswith('metadata.json'):
                     md_changed = item.a_path
                 else:  # pragma: no cover
-                    args.log.warning('Data file {} changed!'.format(p))
+                    args.log.warning('Data file %s changed!', p)
                     return 2
 
     def log_diff(dold, dnew, thing='metadata'):
-        diff = False
+        local_diff = False
         for k, v in dnew.items():
             if k not in dold:
-                args.log.warning('New {}: {}: {}'.format(thing, k, v))
-                diff = True
+                args.log.warning('New %s: %s: %s', thing, k, v)
+                local_diff = True
             elif v != dold[k]:
-                args.log.warning('Changed {}: {}: {} -> {}'.format(thing, k, dold[k], v))
-                diff = True
-        return diff
+                args.log.warning('Changed %s: %s: %s -> %s', thing, k, dold[k], v)
+                local_diff = True
+        return local_diff
 
     def derived_to_dict(d):
         return {
@@ -81,13 +83,14 @@ def diff(ds, args):
 
     if md_changed:
         exclude = {'tables', 'prov:wasGeneratedBy', 'prov:wasDerivedFrom'}
-        old = json.loads(repo.git.show('HEAD:{0}'.format(md_changed)))
+        old = json.loads(repo.git.show(f'HEAD:{md_changed}'))
         new = jsonlib.load(ds.dir / md_changed)
 
-        diff = any([
+        diff_ = any([
             log_diff(derived_to_dict(old), derived_to_dict(new), thing='repository version'),
             log_diff(
                 {k: v for k, v in old.items() if k not in exclude},
                 {k: v for k, v in new.items() if k not in exclude},
             )])
-        return 2 if diff else 0
+        return 2 if diff_ else 0
+    return 0  # pragma: no cover

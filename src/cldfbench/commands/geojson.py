@@ -8,11 +8,11 @@ from clldutils import jsonlib
 from cldfbench.cli_util import add_dataset_spec, get_dataset
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     ds = get_dataset(args)
     languages_with_coordinates = {}
     for spec in ds.cldf_specs_dict.values():
@@ -30,7 +30,7 @@ def run(args):
                     float(language.pop(lon.name)),
                     language)
     geojson = {"type": "FeatureCollection", "features": []}
-    for id, (lat, lon, props) in languages_with_coordinates.items():
+    for lat, lon, props in languages_with_coordinates.values():
         geojson['features'].append({
             "type": "Feature",
             "geometry": {"type": "Point", "coordinates": [lon, lat]},

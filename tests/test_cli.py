@@ -29,10 +29,20 @@ def tmpds_media(fixtures_dir, tmp_path):
     return tmp_path / 'module_media.py'
 
 
+@pytest.fixture
+def tmpds_media2(fixtures_dir, tmp_path):
+    for p in fixtures_dir.iterdir():
+        if p.is_file():
+            shutil.copy(p, tmp_path / p.name)
+    return tmp_path / 'module_media_local.py'
+
+
 def _main(cmd, **kw):
+    kw.setdefault('log', logging.getLogger(__name__))
     return cli.main(shlex.split('--no-config ' + cmd), **kw)
 
 
+@pytest.mark.with_catalog
 def test_get_cldf_dataset(tmp_path, tmpds, glottolog_dir):
     vals = tmp_path.joinpath('values.csv')
     vals.write_text('ID,Language_ID,Parameter_ID,Value\n1,1,1,1', encoding='utf8')
@@ -48,6 +58,7 @@ def test_get_cldf_dataset(tmp_path, tmpds, glottolog_dir):
     assert ds.module == 'StructureDataset'
 
 
+@pytest.mark.with_catalog
 def test_cldfreadme(tmp_path, tmpds, glottolog_dir):
     _main('makecldf ' + str(tmpds) + ' --with-zenodo --with-cldfreadme --glottolog ' +
           str(glottolog_dir))
@@ -61,6 +72,7 @@ def test_help(capsys):
     assert 'usage' in out
 
 
+@pytest.mark.with_catalog
 def test_misc(tmp_path, mocker, glottolog_dir):
     with pytest.raises(SystemExit):
         _main('new --template=xyz')
@@ -100,6 +112,7 @@ def test_run(caplog, tmpds):
         _main('run ' + str(tmpds) + ' raise')
 
 
+@pytest.mark.with_catalog
 def test_readme(tmpds, tmp_path, glottolog_dir, mocker):
     _main('readme ' + str(tmpds))
     _main('makecldf ' + str(tmpds) + ' --glottolog ' + str(glottolog_dir))
@@ -139,6 +152,7 @@ def test_download(tmpds):
         _main('download abc')
 
 
+@pytest.mark.with_catalog
 def test_catinfo(capsys, glottolog_dir):
     _main('catinfo --glottolog {0}'.format(glottolog_dir))
     out, _ = capsys.readouterr()
@@ -172,12 +186,14 @@ def test_catalog_from_config(glottolog_dir, tmpds, mocker, tmp_path, fixtures_di
         cli.main(['makecldf', str(tmpds)])
 
 
+@pytest.mark.with_catalog
 def test_workflow(tmpds, glottolog_dir):
     _main('makecldf ' + str(tmpds) + ' --glottolog ' + str(glottolog_dir))
     assert _main('check ' + str(tmpds) + ' --with-validation', log=logging.getLogger(__name__)) == 1
     _main('geojson ' + str(tmpds))
 
 
+@pytest.mark.with_catalog
 def test_diff(tmpds, mocker, caplog, glottolog_dir, csvw3):
     class Item:
         def __init__(self, p):
@@ -223,6 +239,7 @@ def test_check(tmpds, tmp_path):
     assert _main('check ' + str(tmpds), log=logging.getLogger(__name__)) == 0
 
 
+@pytest.mark.with_catalog
 def test_media(tmpds_media, tmp_path, glottolog_dir, capsys, mocker):
     releasedir = pathlib.Path('thing_{}'.format(MEDIA))
     zipfile_name = pathlib.Path('{}.zip'.format(MEDIA))
@@ -248,15 +265,27 @@ def test_media(tmpds_media, tmp_path, glottolog_dir, capsys, mocker):
     assert 'application/pdf' not in capturedout
 
     with pytest.raises(SystemExit):
-        _main('media -m wav --create-release -p 10.5072/zenodo.710757 ' + str(tmpds_media))
+        _main('media -m wav -p 10.5072/zenodo.710757 ' + str(tmpds_media))
     with pytest.raises(SystemExit):
-        _main('media --create-release --update-zendo ' + str(tmpds_media))
-    with pytest.raises(SystemExit):
-        _main('media --create-release ' + str(tmpds_media))
+        _main('media ' + str(tmpds_media))
 
-    _main('media -o ' + str(tmp_path) + ' -m wav --create-release -p 10.5281/zenodo.4350882 ' + str(tmpds_media))
+    _main('media -o ' + str(tmp_path) + ' -m wav -p 10.5281/zenodo.4350882 ' + str(tmpds_media))
     assert (tmp_path / MEDIA / INDEX_CSV).exists()
     assert (tmp_path / MEDIA / wav_name[:2] / wav_name).exists()
     assert (tmp_path / releasedir / zipfile_name).exists()
     assert (tmp_path / releasedir / 'README.md').exists()
     assert (tmp_path / releasedir / ZENODO_FILE_NAME).exists()
+
+
+@pytest.mark.with_catalog
+def test_media2(tmpds_media2, tmp_path, glottolog_dir, capsys):
+    _main('makecldf ' + str(tmpds_media2) + ' --glottolog ' + str(glottolog_dir))
+
+    _main('media -l ' + str(tmpds_media2))
+    capturedout = capsys.readouterr().out
+    assert 'application/json' in capturedout
+
+    _main('media -o ' + str(tmp_path) + ' -p 10.5281/zenodo.4350882 ' + str(tmpds_media2))
+    assert (tmp_path / MEDIA / INDEX_CSV).exists()
+    assert 'local_path' in (tmp_path / MEDIA / INDEX_CSV).read_text(encoding='utf8')
+    assert (tmp_path / MEDIA / '12' / '12345.json').exists()

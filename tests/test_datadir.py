@@ -1,6 +1,9 @@
+import logging
 import sys
 import gzip
 import shutil
+import contextlib
+import urllib.error
 
 import pytest
 
@@ -15,9 +18,13 @@ def datadir(tmp_path, fixtures_dir):
     return DataDir(tmp_path)
 
 
-def test_get_url(mocker):
-    mocker.patch('cldfbench.datadir.requests', mocker.Mock(get=mocker.Mock()))
-    get_url(None, log=mocker.Mock(warn=mocker.Mock()))
+@pytest.mark.with_internet
+def test_urlopen():
+    try:
+        with urlopen('https://httpbin.org/delay/2', timeout=0.01) as res:
+            assert res.status in (404, 201)  # pragma: no cover
+    except urllib.error.URLError as e:
+        assert ('timed out' in str(e)) or ('failure in name resolution' in str(e))
 
 
 def test_datadir(datadir):
@@ -81,14 +88,18 @@ def test_datadir_ods(datadir):
     assert len(data3) == 4
 
 
-def test_datadir_download_and_unpack(datadir, mocker):
-    mocker.patch(
-        'cldfbench.datadir.get_url',
-        mocker.Mock(
-            return_value=mocker.Mock(
-                iter_content=mocker.Mock(
-                    return_value=[datadir.joinpath('test.zip').open('rb').read()]))))
-    datadir.download_and_unpack(None)
+def test_datadir_download_and_unpack(datadir, mocker, caplog):
+    @contextlib.contextmanager
+    def mock_urlopen(*args, **kw):
+        yield mocker.Mock(status=201, read=lambda: datadir.joinpath('test.zip').open('rb').read())
+
+    mocker.patch('cldfbench.datadir.urlopen', mock_urlopen)
+    datadir.download_and_unpack('')
     assert datadir.joinpath('setup.py').exists()
-    datadir.download(None, 'fname')
-    datadir.download(None, 'fname', skip_if_exists=True)
+    with caplog.at_level(logging.INFO):
+        datadir.download('x', 'fname', log=logging.getLogger(__name__))
+        assert len(caplog.records) == 1
+        assert 'x' in caplog.records[0].message
+        assert caplog.records[0].levelname == 'warning'.upper()
+
+    datadir.download('', 'fname', skip_if_exists=True)

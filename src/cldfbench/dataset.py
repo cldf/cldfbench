@@ -1,21 +1,20 @@
+"""
+A cldfbench Dataset provides scaffolding to automatically create one or more CLDF Datasets.
+"""
 import sys
-import typing
+from typing import Union, Optional
 import inspect
 import pathlib
 import logging
 import argparse
+import functools
 import importlib
 import subprocess
-from datetime import datetime
-try:  # pragma: no cover
-    from datetime import UTC
-    now = lambda: datetime.now(UTC)  # noqa: E731
-except ImportError:  # pragma: no cover
-    now = lambda: datetime.utcnow()  # noqa: E731
+from collections.abc import Generator
 
 import pycldf
 from clldutils.path import sys_path
-from clldutils.misc import lazyproperty, nfilter
+from clldutils.misc import nfilter
 from cldfcatalog import Repository
 
 from cldfbench.cldf import CLDFSpec, CLDFWriter
@@ -23,13 +22,17 @@ from cldfbench.datadir import DataDir
 from cldfbench.metadata import Metadata
 from cldfbench.ci import build_status_badge
 from cldfbench.util import get_entrypoints
+from cldfbench._compat import utcnow
 
 __all__ = ['iter_datasets', 'get_dataset', 'get_datasets', 'Dataset', 'ENTRY_POINT']
 ENTRY_POINT = 'cldfbench.dataset'
 NOOP = -1
+PathType = Union[str, pathlib.Path]
+SpecDictKeyType = Union[str, None]
+SpecDictType = dict[SpecDictKeyType, CLDFSpec]
 
 
-class Dataset(object):
+class Dataset:
     """
     A cldfbench dataset ties together
 
@@ -64,9 +67,9 @@ class Dataset(object):
         self.metadata.id = self.id
 
     def __str__(self):
-        return '{0.__class__.__name__} "{0.id}" at {1}'.format(self, self.dir.resolve())
+        return f'{self.__class__.__name__} "{self.id}" at {self.dir.resolve()}'
 
-    @lazyproperty
+    @functools.cached_property
     def cldf_dir(self) -> DataDir:
         """
         Directory where CLDF data generated from the Dataset will be stored (unless specified
@@ -74,21 +77,21 @@ class Dataset(object):
         """
         return self.dir / 'cldf'
 
-    @lazyproperty
+    @functools.cached_property
     def raw_dir(self) -> DataDir:
         """
         Directory where cldfbench expects the raw or source data.
         """
         return self.dir / 'raw'
 
-    @lazyproperty
+    @functools.cached_property
     def etc_dir(self) -> DataDir:
         """
         Directory where cldfbench expects additional configuration or metadata.
         """
         return self.dir / 'etc'
 
-    def cldf_specs(self) -> typing.Union[CLDFSpec, typing.Dict[str, CLDFSpec]]:
+    def cldf_specs(self) -> Union[CLDFSpec, SpecDictType]:
         """
         A `Dataset` must declare all CLDF datasets that are derived from it.
 
@@ -99,7 +102,7 @@ class Dataset(object):
         return CLDFSpec(dir=self.cldf_dir)
 
     @property
-    def cldf_specs_dict(self) -> typing.Dict[typing.Union[str, None], CLDFSpec]:
+    def cldf_specs_dict(self) -> SpecDictType:
         """
         Turn :meth:`cldf_specs` into a `dict` for simpler lookup.
 
@@ -116,13 +119,14 @@ class Dataset(object):
         Convenience method to be used in a `Dataset`'s `cmd_download` to update raw data curated
         as git submodules.
         """
-        subprocess.check_call(
-            'git -C {} submodule update --remote'.format(self.dir.resolve()), shell=True)
+        subprocess.check_call(f'git -C {self.dir.resolve()} submodule update --remote', shell=True)
 
-    def cldf_writer(self,
-                    args: argparse.Namespace,
-                    cldf_spec: typing.Optional[typing.Union[str, CLDFSpec]] = None,
-                    clean: bool = True) -> CLDFWriter:
+    def cldf_writer(
+            self,
+            args: argparse.Namespace,
+            cldf_spec: Union[CLDFSpec, SpecDictKeyType] = None,
+            clean: bool = True,
+    ) -> CLDFWriter:
         """
         :param args: Namespace passed in when initializing the `CLDFWriter` instance.
         :param cldf_spec: Key of the relevant `CLDFSpec` in `Dataset.cldf_specs`
@@ -137,8 +141,10 @@ class Dataset(object):
             cldf_spec = self.cldf_specs_dict[cldf_spec]
         return cldf_spec.get_writer(args=args, dataset=self, clean=clean)
 
-    def cldf_reader(self,
-                    cldf_spec: typing.Union[str, CLDFSpec, None] = None) -> pycldf.Dataset:
+    def cldf_reader(
+            self,
+            cldf_spec: Union[CLDFSpec, SpecDictKeyType] = None,
+    ) -> pycldf.Dataset:
         """
         :param cldf_spec: Key of the relevant `CLDFSpec` in `Dataset.cldf_specs`.
         :return: a `pycldf.Dataset` instance, for read-access to the CLDF data.
@@ -147,31 +153,31 @@ class Dataset(object):
             cldf_spec = self.cldf_specs_dict[cldf_spec]
         return cldf_spec.get_dataset()
 
-    @lazyproperty
-    def repo(self) -> typing.Union[Repository, None]:
+    @functools.cached_property
+    def repo(self) -> Optional[Repository]:
         """
         The git repository cloned to the dataset's directory (or `None`).
         """
         try:
             return Repository(self.dir)
         except ValueError:  # pragma: no cover
-            return
+            return None
 
     def _cmd_download(self, args):
         self.raw_dir.mkdir(exist_ok=True)
         self.cmd_download(args)
         (self.raw_dir / 'README.md').write_text(
-            'Raw data downloaded {0}'.format(now().isoformat()), encoding='utf8')
+            f'Raw data downloaded {utcnow().isoformat()}', encoding='utf8')
 
     def cmd_download(self, args: argparse.Namespace):
         """
         Implementations of this methods should populate the dataset's `raw_dir` with the source
         data.
         """
-        args.log.warning('cmd_{0} not implemented for dataset {1}'.format('download', self.id))
+        args.log.warning('cmd_download not implemented for dataset %s', self.id)
         return NOOP
 
-    def _cmd_readme(self, args):
+    def _cmd_readme(self, args: argparse.Namespace):
         if self.metadata:
             badge = build_status_badge(self)
             md = self.cmd_readme(args)
@@ -184,22 +190,21 @@ class Dataset(object):
                         lines.extend(['', badge])
                 md = '\n'.join(lines)
 
+            rel_cldf_dir = self.cldf_dir.resolve().relative_to(self.dir.resolve())
             section = [
                 '\n\n## CLDF Datasets\n',
-                'The following CLDF datasets are available in [{0}]({0}):\n'.format(
-                    self.cldf_dir.resolve().relative_to(self.dir.resolve())
-                )
+                f'The following CLDF datasets are available in [{rel_cldf_dir}]({rel_cldf_dir}):\n'
             ]
             for ds in self.cldf_specs_dict.values():
                 if ds.metadata_path.exists():
-                    p = ds.metadata_path.resolve().relative_to(self.dir.resolve())
-                    section.append(
-                        '- CLDF [{0}](https://github.com/cldf/cldf/tree/master/modules/{0}) '
-                        'at [{1}]({1})'.format(ds.module, p))
+                    rel_p = ds.metadata_path.resolve().relative_to(self.dir.resolve())
+                    module_link = (f'[{ds.module}](https://github.com/cldf/cldf/tree/master'
+                                   f'/modules/{ds.module})')
+                    section.append(f'- CLDF {module_link} at [{rel_p}]({rel_p})')
 
             self.dir.joinpath('README.md').write_text(md + '\n'.join(section), encoding='utf8')
 
-    def cmd_readme(self, args: argparse.Namespace) -> str:
+    def cmd_readme(self, _: argparse.Namespace) -> str:
         """
         Implementations of this method should create the content for the dataset's README.md
         and return it as markdown formatted string.
@@ -228,25 +233,25 @@ class Dataset(object):
         :param args: An `argparse.Namespace` including attributes: \
         - `writer`: :class:`CLDFWriter` instance
         """
-        args.log.warning('cmd_{0} not implemented for dataset {1}'.format('makecldf', self.id))
+        args.log.warning('cmd_makecldf not implemented for dataset %s', self.id)
         return NOOP
 
 
-def iter_datasets(ep: str = ENTRY_POINT) -> typing.Generator[Dataset, None, None]:
+def iter_datasets(ep: str = ENTRY_POINT) -> Generator[Dataset, None, None]:
     """
     Yields `Dataset` instances registered for the specified entry point.
 
     :param ep: Name of the entry point.
     """
-    for ep in get_entrypoints(ep):
+    for p in get_entrypoints(ep):
         try:
-            cls = ep.load()
+            cls = p.load()
             yield cls()  # yield an initialized `Dataset` object.
         except ImportError as e:  # pragma: no cover
-            logging.getLogger('cldfbench').warning('Error importing {0}: {1}'.format(ep.name, e))
+            logging.getLogger('cldfbench').warning('Error importing %s: %s', p.name, e)
 
 
-def get_dataset(spec, ep=ENTRY_POINT) -> Dataset:
+def get_dataset(spec, ep: str = ENTRY_POINT) -> Optional[Dataset]:
     """
     Get an initialised `Dataset` instance.
 
@@ -264,9 +269,10 @@ def get_dataset(spec, ep=ENTRY_POINT) -> Dataset:
     ds = dataset_from_module(spec)
     if ds:
         return ds
+    return None
 
 
-def get_datasets(spec, ep=ENTRY_POINT, glob: bool = False) -> typing.List[Dataset]:
+def get_datasets(spec, ep=ENTRY_POINT, glob: bool = False) -> list[Dataset]:
     """
     :param spec: Either `'*'` to get all datasets for a specific entry point, or glob pattern \
     matching dataset modules in the current directory (if `glob == True`), or a `str` as accepted \
@@ -279,7 +285,7 @@ def get_datasets(spec, ep=ENTRY_POINT, glob: bool = False) -> typing.List[Datase
     return nfilter([get_dataset(spec, ep=ep)])
 
 
-def dataset_from_module(path) -> typing.Union[Dataset, None]:
+def dataset_from_module(path: PathType) -> Optional[Dataset]:
     """
     load the first `Dataset` subclass found in the module which does not have any subclasses.
     """
@@ -294,3 +300,4 @@ def dataset_from_module(path) -> typing.Union[Dataset, None]:
         for _, obj in inspect.getmembers(mod):
             if inspect.isclass(obj) and issubclass(obj, Dataset) and not obj.__subclasses__():
                 return obj()
+    return None

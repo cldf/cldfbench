@@ -4,19 +4,20 @@ Create a skeleton for a new dataset
 import pathlib
 import collections
 
-from cldfbench import scaffold
+from cldfbench.scaffold import iter_scaffolds
 
-_templates = None
+_templates = None  # pylint: disable=invalid-name
 
 
 def get_template_dict():
-    global _templates
+    """Read available dataset templates."""
+    global _templates  # pylint: disable=W0603
     if _templates is None:
-        _templates = collections.OrderedDict(scaffold.iter_scaffolds())
+        _templates = collections.OrderedDict(iter_scaffolds())
     return _templates
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     templates = list(get_template_dict().keys())
     parser.add_argument(
         '--template',
@@ -30,7 +31,7 @@ def register(parser):
         default=pathlib.Path('.'))
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     tmpl = get_template_dict()[args.template]()
     md = tmpl.metadata.elicit()
     tmpl.render(args.out, md)

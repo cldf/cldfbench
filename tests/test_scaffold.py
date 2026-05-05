@@ -1,13 +1,13 @@
-import attr
+import dataclasses
 
 from cldfbench.scaffold import Template, Metadata
 
 
 def test_custom_template(tmp_path, mocker, fixtures_dir):
-    @attr.s
+    @dataclasses.dataclass
     class CustomMetadata(Metadata):
-        id = attr.ib(default='abc', metadata=dict(elicit=True))
-        custom_var = attr.ib(default='xyz', metadata=dict(elicit=True))
+        id: str = dataclasses.field(default='abc', metadata=dict(elicit=True))
+        custom_var: str = dataclasses.field(default='xyz', metadata=dict(elicit=True))
 
     class Custom(Template):
         package = 'pylexibank'

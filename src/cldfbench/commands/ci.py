@@ -9,12 +9,12 @@ from cldfbench.cli_util import add_dataset_spec, get_dataset
 from cldfbench.ci import setup, build_status_badge
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     add_dataset_spec(parser, multiple=True)
     parser.add_argument('--test', help=argparse.SUPPRESS, action='store_true', default=False)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     dataset = get_dataset(args)
     if setup(dataset, force=args.test):
         if not args.test:  # pragma: no cover

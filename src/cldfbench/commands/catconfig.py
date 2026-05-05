@@ -7,11 +7,11 @@ will be freshly cloned from GitHub.
 from clldutils.clilib import confirm
 from cldfcatalog import Config
 
-from cldfbench.cli_util import add_catalog_spec
+from cldfbench.cli_util import add_catalog_spec, instantiate_catalog
 from cldfbench.catalogs import BUILTIN_CATALOGS
 
 
-def register(parser):
+def register(parser):  # pylint: disable=C0116
     for cat in BUILTIN_CATALOGS:
         add_catalog_spec(parser, cat.cli_name(), with_version=False)
     parser.add_argument(
@@ -23,27 +23,27 @@ def register(parser):
     parser.set_defaults(no_catalogs=True)
 
 
-def run(args):
+def run(args):  # pylint: disable=C0116
     with Config.from_file() as cfg:
         for cat in BUILTIN_CATALOGS:
             val = getattr(args, cat.cli_name())
             if not val:
                 if cat.default_location().exists():  # pragma: no cover
                     val = cat(cat.default_location()).dir
-                    args.log.info('Clone of {0} exists at {1} - skipping'.format(
-                        cat.__github__, cat.default_location()))
+                    args.log.info(
+                        'Clone of %s exists at %s - skipping',
+                        cat.__github__,
+                        cat.default_location())
                 elif args.quiet or confirm(
-                        'clone {0}?'.format(cat.__github__), default=False):  # pragma: no cover
-                    url = 'https://github.com/{0}.git'.format(cat.__github__)
-                    args.log.info('Cloning {0} into {1} ...'.format(url, cat.default_location()))
+                        f'clone {cat.__github__}?', default=False):  # pragma: no cover
+                    url = f'https://github.com/{cat.__github__}.git'
+                    args.log.info('Cloning %s into %s ...', url, cat.default_location())
                     val = cat.clone(url).dir
                     args.log.info('... done')
             else:
-                try:
-                    cat(val)
-                except ValueError as e:  # pragma: no cover
-                    args.log.warning(str(e))
+                if not instantiate_catalog(cat, val, args.log):
+                    continue  # pragma: no cover
             if val:
                 cfg.add_clone(cat.cli_name(), val)
 
-    args.log.info('Config written to {0}'.format(cfg.fname()))
+    args.log.info('Config written to %s', cfg.fname())

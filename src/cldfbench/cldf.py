@@ -1,13 +1,17 @@
+"""
+Functionality to be plugged into cldfbench datasets to make writing of CLDF datasets easier.
+"""
 import sys
 import shutil
 import pathlib
-import warnings
+import argparse
 import collections
+import dataclasses
+from typing import Optional, Union
 
-import attr
-from csvw.metadata import Link
+from csvw.metadata import Link, Table, Column
 import pycldf
-from pycldf.dataset import get_modules, MD_SUFFIX, Dataset
+from pycldf.dataset import get_module_impl, get_modules, MD_SUFFIX, Dataset, SchemaObjectType
 from pycldf.util import pkg_path
 from cldfcatalog import Repository
 
@@ -15,10 +19,9 @@ from cldfbench.catalogs import Catalog
 from cldfbench.util import iter_requirements
 
 __all__ = ['CLDFWriter', 'CLDFSpec']
-WITH_ZIPPED = tuple(map(int, pycldf.__version__.split('.')[:2])) >= (1, 29)
 
 
-class CLDFWriter(object):
+class CLDFWriter:
     """
     An object mediating writing data as proper CLDF dataset.
 
@@ -36,15 +39,19 @@ class CLDFWriter(object):
         >>> with Writer(cldf_spec) as writer:
         ...     writer.objects['ValueTable'].append(...)
     """
-    def __init__(self, cldf_spec=None, args=None, dataset=None, clean=True):
+    def __init__(self,
+                 cldf_spec: Optional['CLDFSpec'] = None,
+                 args: argparse.Namespace = None,
+                 dataset: Optional[pycldf.Dataset] = None,
+                 clean: bool = True):
         """
         :param cldf_spec: `CLDFSpec` instance
         :param args: `argparse.Namespace`, passed if the writer is instantiated from a cli command.
         :param dataset: `cldfbench.Dataset`, passed if instantiated from a dataset method.
         :param clean: `bool` flag signaling whether to clean the CLDF dir before writing.
         """
-        self.cldf_spec = cldf_spec or CLDFSpec(dir=getattr(dataset, 'cldf_dir', '.'))
-        self.objects = collections.defaultdict(list)
+        self.cldf_spec: CLDFSpec = cldf_spec or CLDFSpec(dir=getattr(dataset, 'cldf_dir', '.'))
+        self.objects: dict[str, list] = collections.defaultdict(list)
         self.args = args
         self.dataset = dataset
         self._cldf = None
@@ -61,7 +68,7 @@ class CLDFWriter(object):
             raise AttributeError('Writer.cldf is only set when Writer is used in with statement!')
         return self._cldf
 
-    def __getitem__(self, type_):
+    def __getitem__(self, type_: SchemaObjectType) -> Union[Table, Column]:
         """
         Mirrors `pycldf.Dataset.__getitem__`
         """
@@ -99,41 +106,50 @@ class CLDFWriter(object):
         """
         When exiting the writer context, write data (and metadata) to disk.
         """
-        if WITH_ZIPPED:
-            self.write(zipped=self.cldf_spec.zipped, **self.objects)
-        else:  # pragma: no cover
-            self.write(**self.objects)
+        self.write(zipped=self.cldf_spec.zipped, **self.objects)
 
-    def write(self, **kw):
-        self.cldf.properties.setdefault('rdf:type', 'http://www.w3.org/ns/dcat#Distribution')
+    @staticmethod
+    def _get_sources(
+            dataset: Optional[Dataset],
+            args: argparse.Namespace,
+            props: dict,
+    ) -> list[dict]:
         srcs = []
         # Let's see whether self.dataset is repository:
-        if self.dataset:
-            self.cldf.properties.setdefault('rdf:ID', self.dataset.id)
-            for k, v in self.dataset.metadata.common_props().items():
-                self.cldf.properties.setdefault(k, v)
-            if self.dataset.repo:
-                if self.dataset.repo.url:
-                    self.cldf.properties.setdefault('dcat:accessURL', self.dataset.repo.url)
+        if dataset:
+            props.setdefault('rdf:ID', dataset.id)
+            for k, v in dataset.metadata.common_props().items():
+                props.setdefault(k, v)
+            if dataset.repo:
+                if dataset.repo.url:
+                    props.setdefault('dcat:accessURL', dataset.repo.url)
                 try:
-                    srcs.append(self.dataset.repo.json_ld())
-                except:  # pragma: no cover  # noqa: E722
+                    srcs.append(dataset.repo.json_ld())
+                except:  # pragma: no cover  # noqa: E722  # pylint: disable=W0702
                     # If a git repository has no commit, git describe fails.
                     pass
-        if self.args:
+        if args:
             # We inspect the cli arguments to see whether some `Catalog`'s were used.
-            for cat in vars(self.args).values():
+            for cat in vars(args).values():
                 if isinstance(cat, Catalog):
                     srcs.append(cat.json_ld())
         # And check, whether any repositories have been "mounted" via git submodules in raw/:
-        if self.dataset and self.dataset.raw_dir.exists():
-            for p in self.dataset.raw_dir.iterdir():
+        if dataset and dataset.raw_dir.exists():
+            for p in dataset.raw_dir.iterdir():
                 if p.is_dir():
                     try:
                         repo = Repository(p)
                     except ValueError:
                         continue
                     srcs.append(repo.json_ld())
+        return srcs
+
+    def write(self, **kw):
+        """
+        Write the data specified as lists of rows according to the metadata.
+        """
+        self.cldf.properties.setdefault('rdf:type', 'http://www.w3.org/ns/dcat#Distribution')
+        srcs = self._get_sources(self.dataset, self.args, self.cldf.properties)
         if srcs:
             self.cldf.add_provenance(wasDerivedFrom=srcs)
         reqs = [
@@ -153,8 +169,8 @@ class CLDFWriter(object):
         self.cldf.write(**kw)
 
 
-@attr.s
-class CLDFSpec(object):
+@dataclasses.dataclass
+class CLDFSpec:
     """
     Basic specification to initialize a CLDF Dataset.
 
@@ -168,39 +184,38 @@ class CLDFSpec(object):
     :ivar zipped: An `iterable` listing component names or csv file names for which the \
     corresponding tables should be zipped.
     """
-    dir = attr.ib(converter=lambda s: pathlib.Path(s) if s else s)
-    module = attr.ib(
-        default='Generic',
-        converter=lambda cls: getattr(cls, '__name__', cls),
-        validator=attr.validators.in_([m.id for m in get_modules()])
-    )
-    default_metadata_path = attr.ib(default=None)
-    metadata_fname = attr.ib(default=None)
-    data_fnames = attr.ib(default=attr.Factory(dict))
-    writer_cls = attr.ib(default=CLDFWriter)
-    zipped = attr.ib(default=attr.Factory(set))
+    dir: pathlib.Path
+    module: str = 'Generic'
+    default_metadata_path: Optional[pathlib.Path] = None
+    metadata_fname: Optional[str] = None
+    data_fnames: Optional[dict[str, str]] = dataclasses.field(default_factory=dict)
+    writer_cls: type = CLDFWriter
+    zipped: Union[set[str], list[str]] = dataclasses.field(default_factory=set)
 
-    def __attrs_post_init__(self):
-        if self.zipped and not WITH_ZIPPED:  # pragma: no cover
-            warnings.warn('Writing zipped tables requires pycldf >= 1.29', category=UserWarning)
+    def __post_init__(self):
+        self.dir = pathlib.Path(self.dir)
+        self.module = getattr(self.module, '__name__', self.module)
+        if self.module not in {m.id for m in get_modules()}:
+            raise ValueError(f'Invalid module: {self.module}')
+
         if self.default_metadata_path:
             self.default_metadata_path = pathlib.Path(self.default_metadata_path)
             try:
                 Dataset.from_metadata(self.default_metadata_path)
-            except Exception:
-                raise ValueError('invalid default metadata: {0}'.format(self.default_metadata_path))
+            except Exception as e:
+                raise ValueError(f'invalid default metadata: {self.default_metadata_path}') from e
         else:
-            self.default_metadata_path = pkg_path(
-                'modules', '{0}{1}'.format(self.module, MD_SUFFIX))
+            self.default_metadata_path = pkg_path('modules', f'{self.module}{MD_SUFFIX}')
 
         if not self.metadata_fname:
             self.metadata_fname = self.default_metadata_path.name
 
     @property
-    def metadata_path(self):
+    def metadata_path(self) -> pathlib.Path:  # pylint: disable=C0116
         return (self.dir / self.metadata_fname) if self.dir else pathlib.Path(self.metadata_fname)
 
     def make_clean(self):
+        """Clean out the cldf directory (typically preparing a new run of `makecldf`)."""
         self.dir.mkdir(exist_ok=True)
         for p in self.dir.iterdir():
             if p.is_file() and p.name not in ['.gitattributes', 'README.md']:
@@ -211,17 +226,20 @@ class CLDFSpec(object):
                 fp.write('*.csv text eol=crlf')
 
     def copy_metadata(self):
+        """Copy the default metadata to the location specified in spec."""
         shutil.copy(str(self.default_metadata_path), str(self.metadata_path))
 
-    def get_dataset(self):
-        # Initialize a CLDF Dataset:
+    def get_dataset(self) -> pycldf.Dataset:
+        """Initialized CLDF Dataset"""
         return self.cls.from_metadata(self.metadata_path)
 
-    def get_writer(self, args=None, dataset=None, clean=True):
+    def get_writer(self, args=None, dataset=None, clean=True) -> CLDFWriter:
+        """An initialized CLDFWriter."""
         return self.writer_cls(cldf_spec=self, args=args, dataset=dataset, clean=clean)
 
     @property
-    def cls(self):
-        for m in get_modules():
-            if m.id == self.module:
-                return m.cls
+    def cls(self) -> type:
+        """A suitable Dataset subclass to represent the module."""
+        res = get_module_impl(Dataset, self.module)
+        assert res, self.module
+        return res
