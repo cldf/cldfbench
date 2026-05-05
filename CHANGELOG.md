@@ -14,6 +14,8 @@ these packages are released which are compatible with `clldutils` 4.x.
 - removed `utils.get_url` function.
 - `metadata.Metadata` is no longer an `attrs`-decorated class, so inheriting classes (to implement
   custom scaffold metadata) must be changed to `dataclasses`.
+- Pin dependencies for packages which are about to get incompatible new major versions.
+- Last version of the 1.x series.
 
 
 ## [1.14.2] - 2025-08-07

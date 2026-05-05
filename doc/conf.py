@@ -18,11 +18,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'cldfbench'
-copyright = '2025, Robert Forkel'
+copyright = '2026, Robert Forkel'
 author = 'Robert Forkel'
 
-release = '1.14.3.dev0'
-version = '1.14.3.dev0'
+release = '1.14.4.dev0'
+version = '1.14.4.dev0'
 
 
 # -- General configuration ---------------------------------------------------
