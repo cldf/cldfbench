@@ -10,4 +10,4 @@ from cldfbench.cldf import *  # noqa: F401, F403
 from cldfbench.metadata import *  # noqa: F401, F403
 from cldfbench.scaffold import *  # noqa: F401, F403
 
-__version__ = '2.0.0'
+__version__ = '2.0.1.dev0'
