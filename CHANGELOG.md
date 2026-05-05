@@ -6,6 +6,9 @@
 - Drop py3.8 compat.
 - Removed dependency on requests and attrs.
 
+Note: Functionality requiring `pyglottolog` or `pyconcepticon` will only work once versions of
+these packages are released which are compatible with `clldutils` 4.x.
+
 ### Backwards incompatible changes
 
 - removed `utils.get_url` function.

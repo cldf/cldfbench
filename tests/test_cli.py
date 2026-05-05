@@ -42,6 +42,7 @@ def _main(cmd, **kw):
     return cli.main(shlex.split('--no-config ' + cmd), **kw)
 
 
+@pytest.mark.with_catalog
 def test_get_cldf_dataset(tmp_path, tmpds, glottolog_dir):
     vals = tmp_path.joinpath('values.csv')
     vals.write_text('ID,Language_ID,Parameter_ID,Value\n1,1,1,1', encoding='utf8')
@@ -57,6 +58,7 @@ def test_get_cldf_dataset(tmp_path, tmpds, glottolog_dir):
     assert ds.module == 'StructureDataset'
 
 
+@pytest.mark.with_catalog
 def test_cldfreadme(tmp_path, tmpds, glottolog_dir):
     _main('makecldf ' + str(tmpds) + ' --with-zenodo --with-cldfreadme --glottolog ' +
           str(glottolog_dir))
@@ -70,6 +72,7 @@ def test_help(capsys):
     assert 'usage' in out
 
 
+@pytest.mark.with_catalog
 def test_misc(tmp_path, mocker, glottolog_dir):
     with pytest.raises(SystemExit):
         _main('new --template=xyz')
@@ -109,6 +112,7 @@ def test_run(caplog, tmpds):
         _main('run ' + str(tmpds) + ' raise')
 
 
+@pytest.mark.with_catalog
 def test_readme(tmpds, tmp_path, glottolog_dir, mocker):
     _main('readme ' + str(tmpds))
     _main('makecldf ' + str(tmpds) + ' --glottolog ' + str(glottolog_dir))
@@ -148,6 +152,7 @@ def test_download(tmpds):
         _main('download abc')
 
 
+@pytest.mark.with_catalog
 def test_catinfo(capsys, glottolog_dir):
     _main('catinfo --glottolog {0}'.format(glottolog_dir))
     out, _ = capsys.readouterr()
@@ -181,12 +186,14 @@ def test_catalog_from_config(glottolog_dir, tmpds, mocker, tmp_path, fixtures_di
         cli.main(['makecldf', str(tmpds)])
 
 
+@pytest.mark.with_catalog
 def test_workflow(tmpds, glottolog_dir):
     _main('makecldf ' + str(tmpds) + ' --glottolog ' + str(glottolog_dir))
     assert _main('check ' + str(tmpds) + ' --with-validation', log=logging.getLogger(__name__)) == 1
     _main('geojson ' + str(tmpds))
 
 
+@pytest.mark.with_catalog
 def test_diff(tmpds, mocker, caplog, glottolog_dir, csvw3):
     class Item:
         def __init__(self, p):
@@ -232,6 +239,7 @@ def test_check(tmpds, tmp_path):
     assert _main('check ' + str(tmpds), log=logging.getLogger(__name__)) == 0
 
 
+@pytest.mark.with_catalog
 def test_media(tmpds_media, tmp_path, glottolog_dir, capsys, mocker):
     releasedir = pathlib.Path('thing_{}'.format(MEDIA))
     zipfile_name = pathlib.Path('{}.zip'.format(MEDIA))
@@ -269,6 +277,7 @@ def test_media(tmpds_media, tmp_path, glottolog_dir, capsys, mocker):
     assert (tmp_path / releasedir / ZENODO_FILE_NAME).exists()
 
 
+@pytest.mark.with_catalog
 def test_media2(tmpds_media2, tmp_path, glottolog_dir, capsys):
     _main('makecldf ' + str(tmpds_media2) + ' --glottolog ' + str(glottolog_dir))
 
