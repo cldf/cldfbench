@@ -18,6 +18,7 @@ def datadir(tmp_path, fixtures_dir):
     return DataDir(tmp_path)
 
 
+@pytest.mark.with_internet
 def test_urlopen():
     try:
         with urlopen('https://httpbin.org/delay/2', timeout=0.01) as res:
