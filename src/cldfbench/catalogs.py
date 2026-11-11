@@ -7,7 +7,6 @@ For these catalogs, `cldfbench` provides
 - support to access the Python API for each catalog from the `Catalog` object,
 - automatic registration of catalogs as provenance information when writing CLDF.
 """
-from typing import Union, Optional
 import functools
 
 from cldfcatalog import Catalog
@@ -50,7 +49,7 @@ try:  # pragma: no cover
         def macroareas_by_glottocode(self) -> dict[str, list[Macroarea]]:  # pylint: disable=C0116
             return {lid: l[1] for lid, l in self.languoid_details.items()}
 
-        def get_language(self, languoid: Union[str, Languoid]) -> Optional[Languoid]:
+        def get_language(self, languoid: str | Languoid) -> Languoid | None:
             """
             :param languoid: A languoid specified via Glottocode or passed as `Languoid` instance.
             :return: Language-level languoid associated with `languoid` or `None` if `languoid` is \

@@ -2,7 +2,7 @@
 A cldfbench Dataset provides scaffolding to automatically create one or more CLDF Datasets.
 """
 import sys
-from typing import Union, Optional
+from typing import Optional
 import inspect
 import pathlib
 import logging
@@ -27,8 +27,8 @@ from cldfbench._compat import utcnow
 __all__ = ['iter_datasets', 'get_dataset', 'get_datasets', 'Dataset', 'ENTRY_POINT']
 ENTRY_POINT = 'cldfbench.dataset'
 NOOP = -1
-PathType = Union[str, pathlib.Path]
-SpecDictKeyType = Union[str, None]
+PathType = str | pathlib.Path
+SpecDictKeyType = str | None
 SpecDictType = dict[SpecDictKeyType, CLDFSpec]
 
 
@@ -91,7 +91,7 @@ class Dataset:
         """
         return self.dir / 'etc'
 
-    def cldf_specs(self) -> Union[CLDFSpec, SpecDictType]:
+    def cldf_specs(self) -> CLDFSpec | SpecDictType:
         """
         A `Dataset` must declare all CLDF datasets that are derived from it.
 
@@ -124,7 +124,7 @@ class Dataset:
     def cldf_writer(
             self,
             args: argparse.Namespace,
-            cldf_spec: Union[CLDFSpec, SpecDictKeyType] = None,
+            cldf_spec: CLDFSpec | SpecDictKeyType = None,
             clean: bool = True,
     ) -> CLDFWriter:
         """
@@ -141,10 +141,7 @@ class Dataset:
             cldf_spec = self.cldf_specs_dict[cldf_spec]
         return cldf_spec.get_writer(args=args, dataset=self, clean=clean)
 
-    def cldf_reader(
-            self,
-            cldf_spec: Union[CLDFSpec, SpecDictKeyType] = None,
-    ) -> pycldf.Dataset:
+    def cldf_reader(self, cldf_spec: CLDFSpec | SpecDictKeyType = None) -> pycldf.Dataset:
         """
         :param cldf_spec: Key of the relevant `CLDFSpec` in `Dataset.cldf_specs`.
         :return: a `pycldf.Dataset` instance, for read-access to the CLDF data.

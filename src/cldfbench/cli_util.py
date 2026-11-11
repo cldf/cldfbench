@@ -4,7 +4,7 @@ Utilities used in cldfbench commands.
 import json
 import logging
 import pathlib
-from typing import Union, Any, Optional
+from typing import Any, Optional, Callable
 from time import time
 import functools
 import argparse
@@ -145,8 +145,7 @@ def add_catalog_spec(
             default=None)
 
 
-def with_dataset(args: argparse.Namespace, func: Union[callable, str], dataset=None) \
-        -> Any:
+def with_dataset(args: argparse.Namespace, func: Callable | str, dataset=None) -> Any:
     """
     Run a callable, passing a dataset and `args` as arguments, returning it's result.
 
@@ -183,10 +182,7 @@ def with_datasets(args, func):
 
 
 def instantiate_catalog(
-        cat: type,
-        path: Union[str, pathlib.Path],
-        log: logging.Logger,
-) -> Optional[Catalog]:
+        cat: type, path: str | pathlib.Path, log: logging.Logger) -> Optional[Catalog]:
     """Try to instantiate a catalog."""
     try:
         return cat(path)

@@ -7,7 +7,7 @@ import pathlib
 import argparse
 import collections
 import dataclasses
-from typing import Optional, Union
+from typing import Optional
 
 from csvw.metadata import Link, Table, Column
 import pycldf
@@ -42,7 +42,7 @@ class CLDFWriter:
     def __init__(self,
                  cldf_spec: Optional['CLDFSpec'] = None,
                  args: argparse.Namespace = None,
-                 dataset: Optional[pycldf.Dataset] = None,
+                 dataset: pycldf.Dataset | None = None,
                  clean: bool = True):
         """
         :param cldf_spec: `CLDFSpec` instance
@@ -68,7 +68,7 @@ class CLDFWriter:
             raise AttributeError('Writer.cldf is only set when Writer is used in with statement!')
         return self._cldf
 
-    def __getitem__(self, type_: SchemaObjectType) -> Union[Table, Column]:
+    def __getitem__(self, type_: SchemaObjectType) -> Table | Column:
         """
         Mirrors `pycldf.Dataset.__getitem__`
         """
@@ -109,11 +109,7 @@ class CLDFWriter:
         self.write(zipped=self.cldf_spec.zipped, **self.objects)
 
     @staticmethod
-    def _get_sources(
-            dataset: Optional[Dataset],
-            args: argparse.Namespace,
-            props: dict,
-    ) -> list[dict]:
+    def _get_sources(dataset: Dataset | None, args: argparse.Namespace, props: dict) -> list[dict]:
         srcs = []
         # Let's see whether self.dataset is repository:
         if dataset:
@@ -186,11 +182,11 @@ class CLDFSpec:
     """
     dir: pathlib.Path
     module: str = 'Generic'
-    default_metadata_path: Optional[pathlib.Path] = None
-    metadata_fname: Optional[str] = None
-    data_fnames: Optional[dict[str, str]] = dataclasses.field(default_factory=dict)
+    default_metadata_path: pathlib.Path | None = None
+    metadata_fname: str | None = None
+    data_fnames: dict[str, str] | None = dataclasses.field(default_factory=dict)
     writer_cls: type = CLDFWriter
-    zipped: Union[set[str], list[str]] = dataclasses.field(default_factory=set)
+    zipped: set[str] | list[str] = dataclasses.field(default_factory=set)
 
     def __post_init__(self):
         self.dir = pathlib.Path(self.dir)

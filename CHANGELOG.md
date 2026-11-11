@@ -1,5 +1,10 @@
 # Changes
 
+## Unreleased
+
+- Drop py3.9 compat.
+
+
 ## [2.0.0] - 2026-05-05
 
 - Fixed issue where `makecldf` could not be run on a dataset in a git repos with no commits.

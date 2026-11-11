@@ -6,12 +6,10 @@ import pathlib
 import platform
 import subprocess
 import importlib.metadata
-from typing import Literal, Union
+from typing import Literal
 from collections.abc import Iterable, Generator
 
 import termcolor
-
-from ._compat import entry_points_select
 
 
 def colored(color: Literal['red', 'blue'], text, **kw):
@@ -21,11 +19,11 @@ def colored(color: Literal['red', 'blue'], text, **kw):
 
 def get_entrypoints(group: str) -> Iterable[importlib.metadata.EntryPoint]:
     """Get registered entry points for a group."""
-    return entry_points_select(importlib.metadata.entry_points(), group)
+    return importlib.metadata.entry_points().select(group=group)
 
 
 def iter_aligned(
-        pairs: Iterable[Union[tuple[str, str], list[str]]],
+        pairs: Iterable[tuple[str, str] | list[str]],
         prefix: str = '',
         minspace: int = 1,
 ) -> Generator[str, None, None]:

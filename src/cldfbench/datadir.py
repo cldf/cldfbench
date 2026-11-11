@@ -4,7 +4,7 @@ Functionality to access structured data in the file system.
 import gzip
 import shutil
 import logging
-from typing import Optional, Union, Literal
+from typing import Optional, Literal
 import pathlib
 import zipfile
 import functools
@@ -45,7 +45,7 @@ __all__ = ['DataDir', 'urlopen']
 HTTP_REQUEST_TIMEOUT = 10
 ODF_NS_TABLE = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
 ODF_NS_TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
-PathType = Union[str, pathlib.Path]
+PathType = str | pathlib.Path
 PathDictType = dict[str, pathlib.Path]
 LogType = Optional[logging.Logger]
 
@@ -187,7 +187,7 @@ class DataDir(type(pathlib.Path())):
             fname: PathType,
             normalize: Optional[Literal['NFC', 'NFKC', 'NFD', 'NFKD']] = None,
             **kw,
-    ) -> list[Union[dict[str, str], list[str]]]:
+    ) -> list[dict[str, str] | list[str]]:
         """
         Read CSV data from a file.
         """
@@ -219,7 +219,7 @@ class DataDir(type(pathlib.Path())):
             xml = f'<r>{xml}</r>'
         return et.fromstring(xml.encode('utf8'))
 
-    def read_json(self, fname: PathType, **_) -> Union[str, list, dict]:
+    def read_json(self, fname: PathType, **_) -> str | list | dict:
         """Read a JSON file."""
         return jsonlib.load(self._path(fname))
 
